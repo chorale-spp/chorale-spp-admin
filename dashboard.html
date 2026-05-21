@@ -1,0 +1,713 @@
+---
+layout: null
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Chorale Saint Padre Pio</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- App Loading -->
+<div id="app-loading">
+  <img src="assets/img/logo.png" alt="Logo" onerror="this.style.display='none'">
+  <p>Loading Portal</p>
+</div>
+
+<!-- Sidebar Overlay (mobile) -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<div class="dashboard-layout">
+
+  <!-- ═══════════════ LEFT SIDEBAR ═══════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="assets/img/logo.png" alt="Logo" class="sidebar-logo-img" onerror="this.remove()">
+      <div class="sidebar-logo-text">
+        ADMIN PORTAL
+        <strong>Chorale <em>Saint Padre Pio</em></strong>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Management</div>
+
+      <button class="nav-item active" data-nav="overview" onclick="APP.navigate('overview')">
+        <i class="fas fa-chart-pie"></i>
+        Overview
+      </button>
+
+      <button class="nav-item" data-nav="members" onclick="APP.navigate('members')">
+        <i class="fas fa-users"></i>
+        Choir Members
+      </button>
+
+      <button class="nav-item" data-nav="attendance" onclick="APP.navigate('attendance')">
+        <i class="fas fa-clipboard-check"></i>
+        Attendance
+      </button>
+
+      <div class="nav-section-label">Planning</div>
+
+      <button class="nav-item" data-nav="events" onclick="APP.navigate('events')">
+        <i class="fas fa-calendar-alt"></i>
+        Events
+      </button>
+
+      <div class="nav-section-label">Finance</div>
+
+      <button class="nav-item" data-nav="finances" onclick="APP.navigate('finances')">
+        <i class="fas fa-coins"></i>
+        Finances
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="window.signOut()">
+        <i class="fas fa-sign-out-alt"></i>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+  <div class="main-content">
+
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="topbar-btn hamburger" onclick="openSidebar()">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div>
+          <div class="topbar-title" id="topbar-title">Overview</div>
+          <div class="topbar-date" id="topbar-date"></div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="topbar-btn" title="Profile" onclick="toggleRightPanel()">
+          <i class="fas fa-user-circle"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page Area -->
+    <div class="page-area">
+
+      <!-- Page Content -->
+      <main class="page-content">
+
+        <!-- Overview -->
+        <div class="section-view active" id="view-overview"></div>
+
+        <!-- Members -->
+        <div class="section-view" id="view-members"></div>
+
+        <!-- Attendance -->
+        <div class="section-view" id="view-attendance"></div>
+
+        <!-- Events -->
+        <div class="section-view" id="view-events"></div>
+
+        <!-- Finances -->
+        <div class="section-view" id="view-finances"></div>
+
+      </main>
+
+      <!-- ═══════════════ RIGHT PANEL ═══════════════ -->
+      <aside class="right-panel" id="right-panel">
+
+        <!-- Profile -->
+        <div class="right-panel-section">
+          <div class="right-panel-label">Your Profile</div>
+          <div id="profile-avatar-wrap" style="margin-bottom:8px">
+            <div class="profile-avatar-placeholder" id="profile-avatar-placeholder">?</div>
+          </div>
+          <div class="profile-name" id="profile-name">—</div>
+          <div class="profile-role" id="profile-role">—</div>
+          <div class="profile-voice" id="profile-voice"></div>
+          <div class="profile-motto" id="profile-motto"><em>Add your personal motto</em></div>
+          <button class="btn-ghost w-full" onclick="APP.openModal('modal-edit-profile')" style="justify-content:center;margin-top:8px">
+            <i class="fas fa-pencil-alt"></i> Edit Profile
+          </button>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="right-panel-section">
+          <div class="right-panel-label">Your Stats</div>
+          <div class="profile-stats">
+            <div class="profile-stat">
+              <div class="val" id="ps-score">—</div>
+              <div class="lbl">Score</div>
+            </div>
+            <div class="profile-stat">
+              <div class="val" id="ps-att">—</div>
+              <div class="lbl">Attendance</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upcoming -->
+        <div class="right-panel-section">
+          <div class="right-panel-label">Next Events</div>
+          <div id="rp-upcoming"><p class="muted" style="font-size:.78rem">Loading...</p></div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="right-panel-section">
+          <div class="right-panel-label">Recent Activity</div>
+          <div id="rp-activity"><p class="muted" style="font-size:.78rem">Loading...</p></div>
+        </div>
+
+      </aside>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════
+     MODALS
+════════════════════════════════════════════════ -->
+
+<!-- Add / Edit Member -->
+<div class="modal-overlay" id="modal-add-member">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Member</h3>
+      <button class="modal-close" onclick="APP.closeModal('modal-add-member')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="form-member-id">
+      <div class="form-row">
+        <div class="form-group-sm">
+          <label>First Name *</label>
+          <input type="text" id="fm-first" placeholder="Jean">
+        </div>
+        <div class="form-group-sm">
+          <label>Last Name *</label>
+          <input type="text" id="fm-last" placeholder="Mukasa">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group-sm">
+          <label>Email</label>
+          <input type="email" id="fm-email" placeholder="email@example.com">
+        </div>
+        <div class="form-group-sm">
+          <label>Phone</label>
+          <input type="tel" id="fm-phone" placeholder="+256 700 000000">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group-sm">
+          <label>Voice Part</label>
+          <select id="fm-voice">
+            <option value="">Select voice</option>
+            <option>Soprano</option>
+            <option>Alto</option>
+            <option>Tenor</option>
+            <option>Bass</option>
+          </select>
+        </div>
+        <div class="form-group-sm">
+          <label>Role</label>
+          <select id="fm-role">
+            <option value="member">Member</option>
+            <option value="music_director">Music Director</option>
+            <option value="maestro">Maestro</option>
+            <option value="treasurer">Treasurer</option>
+            <option value="secretary">Secretary / Admin</option>
+            <option value="archivist">Archivist</option>
+            <option value="discipline_dir">Discipline Director</option>
+            <option value="discipline_vic">Discipline Vice-Director</option>
+            <option value="voice_resp">Voice Responsable</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group-sm">
+        <label>Date Joined</label>
+        <input type="date" id="fm-join">
+      </div>
+      <div class="form-group-sm">
+        <label>Personal Motto</label>
+        <input type="text" id="fm-motto" placeholder="A personal motto or quote...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="APP.closeModal('modal-add-member')">Cancel</button>
+      <button class="btn-primary" style="width:auto;padding:10px 22px" onclick="APP.saveMember()">
+        <i class="fas fa-save"></i> Save Member
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- View Member -->
+<div class="modal-overlay" id="modal-view-member">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Member Details</h3>
+      <button class="modal-close" onclick="APP.closeModal('modal-view-member')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="APP.closeModal('modal-view-member')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Event -->
+<div class="modal-overlay" id="modal-add-event">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <h3>New Event</h3>
+      <button class="modal-close" onclick="APP.closeModal('modal-add-event')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="form-event-id">
+      <div class="form-group-sm">
+        <label>Event Title *</label>
+        <input type="text" id="fe-title" placeholder="Christmas Concert 2026">
+      </div>
+      <div class="form-row">
+        <div class="form-group-sm">
+          <label>Date *</label>
+          <input type="date" id="fe-date">
+        </div>
+        <div class="form-group-sm">
+          <label>Type</label>
+          <select id="fe-type">
+            <option value="Concert">Concert</option>
+            <option value="Rehearsal">Rehearsal</option>
+            <option value="Mass">Mass</option>
+            <option value="Retreat">Retreat</option>
+            <option value="Meeting">Meeting</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group-sm">
+        <label>Venue</label>
+        <input type="text" id="fe-venue" placeholder="Church of Saint Padre Pio, Kampala">
+      </div>
+      <div class="form-group-sm">
+        <label>Description</label>
+        <textarea id="fe-desc" rows="2" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);font-size:.83rem;resize:vertical;background:var(--cream-light)"></textarea>
+      </div>
+      <div class="form-group-sm">
+        <label>Total Budget (UGX)</label>
+        <input type="number" id="fe-budget" placeholder="0">
+      </div>
+      <div style="font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin:14px 0 10px">Budget Breakdown</div>
+      <div class="form-row">
+        <div class="form-group-sm"><label>Transport</label><input type="number" id="fe-cat-transport" placeholder="0"></div>
+        <div class="form-group-sm"><label>Costumes</label><input type="number" id="fe-cat-costumes" placeholder="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group-sm"><label>Venue</label><input type="number" id="fe-cat-venue" placeholder="0"></div>
+        <div class="form-group-sm"><label>Catering</label><input type="number" id="fe-cat-catering" placeholder="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group-sm"><label>Sound / Tech</label><input type="number" id="fe-cat-sound" placeholder="0"></div>
+        <div class="form-group-sm"><label>Miscellaneous</label><input type="number" id="fe-cat-misc" placeholder="0"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="APP.closeModal('modal-add-event')">Cancel</button>
+      <button class="btn-primary" style="width:auto;padding:10px 22px" onclick="APP.saveEvent()">
+        <i class="fas fa-save"></i> Save Event
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- View Event -->
+<div class="modal-overlay" id="modal-view-event">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Event Details</h3>
+      <button class="modal-close" onclick="APP.closeModal('modal-view-event')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="APP.closeModal('modal-view-event')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Transaction -->
+<div class="modal-overlay" id="modal-add-transaction">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Transaction</h3>
+      <button class="modal-close" onclick="APP.closeModal('modal-add-transaction')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group-sm">
+          <label>Type</label>
+          <select id="ft-type">
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+          </select>
+        </div>
+        <div class="form-group-sm">
+          <label>Amount (UGX) *</label>
+          <input type="number" id="ft-amount" placeholder="5000">
+        </div>
+      </div>
+      <div class="form-group-sm">
+        <label>Description *</label>
+        <input type="text" id="ft-desc" placeholder="Monthly contribution — Name">
+      </div>
+      <div class="form-row">
+        <div class="form-group-sm">
+          <label>Category</label>
+          <select id="ft-category">
+            <option value="monthly_contribution">Monthly Contribution</option>
+            <option value="event_contribution">Event Contribution</option>
+            <option value="donation">Donation</option>
+            <option value="transport">Transport</option>
+            <option value="costumes">Costumes</option>
+            <option value="venue">Venue</option>
+            <option value="catering">Catering</option>
+            <option value="sound">Sound / Tech</option>
+            <option value="other_expense">Other Expense</option>
+            <option value="other_income">Other Income</option>
+          </select>
+        </div>
+        <div class="form-group-sm">
+          <label>Date *</label>
+          <input type="date" id="ft-date">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group-sm">
+          <label>Member (optional)</label>
+          <select id="ft-member">
+            <option value="">None</option>
+          </select>
+        </div>
+        <div class="form-group-sm">
+          <label>Event (optional)</label>
+          <select id="ft-event">
+            <option value="">None</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="APP.closeModal('modal-add-transaction')">Cancel</button>
+      <button class="btn-primary" style="width:auto;padding:10px 22px" onclick="APP.saveTransaction()">
+        <i class="fas fa-save"></i> Save
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Contribution -->
+<div class="modal-overlay" id="modal-add-contribution">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Record Contribution</h3>
+      <button class="modal-close" onclick="APP.closeModal('modal-add-contribution')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group-sm">
+        <label>Member *</label>
+        <select id="fc-member">
+          <option value="">Select member</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group-sm">
+          <label>Type</label>
+          <select id="fc-type">
+            <option value="monthly">Monthly (UGX 5,000)</option>
+            <option value="event">Event Contribution</option>
+          </select>
+        </div>
+        <div class="form-group-sm">
+          <label>Amount (UGX)</label>
+          <input type="number" id="fc-amount" placeholder="5000" value="5000">
+        </div>
+      </div>
+      <div class="form-group-sm">
+        <label>Date *</label>
+        <input type="date" id="fc-date">
+      </div>
+      <div class="form-group-sm">
+        <label>Note</label>
+        <input type="text" id="fc-note" placeholder="e.g. January 2026">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="APP.closeModal('modal-add-contribution')">Cancel</button>
+      <button class="btn-primary" style="width:auto;padding:10px 22px" onclick="APP.saveContribution()">
+        <i class="fas fa-save"></i> Record
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Profile -->
+<div class="modal-overlay" id="modal-edit-profile">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Edit Profile</h3>
+      <button class="modal-close" onclick="APP.closeModal('modal-edit-profile')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group-sm">
+          <label>First Name</label>
+          <input type="text" id="ep-first">
+        </div>
+        <div class="form-group-sm">
+          <label>Last Name</label>
+          <input type="text" id="ep-last">
+        </div>
+      </div>
+      <div class="form-group-sm">
+        <label>Voice Part</label>
+        <select id="ep-voice">
+          <option value="">Select</option>
+          <option>Soprano</option><option>Alto</option><option>Tenor</option><option>Bass</option>
+        </select>
+      </div>
+      <div class="form-group-sm">
+        <label>Role</label>
+        <select id="ep-role">
+          <option value="member">Member</option>
+          <option value="music_director">Music Director</option>
+          <option value="maestro">Maestro</option>
+          <option value="treasurer">Treasurer</option>
+          <option value="secretary">Secretary / Admin</option>
+          <option value="archivist">Archivist</option>
+          <option value="discipline_dir">Discipline Director</option>
+          <option value="discipline_vic">Discipline Vice-Director</option>
+          <option value="voice_resp">Voice Responsable</option>
+        </select>
+      </div>
+      <div class="form-group-sm">
+        <label>Personal Motto</label>
+        <input type="text" id="ep-motto" placeholder="Your personal motto">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="APP.closeModal('modal-edit-profile')">Cancel</button>
+      <button class="btn-primary" style="width:auto;padding:10px 22px" onclick="APP.saveProfile()">
+        <i class="fas fa-save"></i> Save
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="assets/js/firebase-init.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/sections.js"></script>
+<script>
+
+// ── Dashboard initialization ──
+window.initDashboard = async function() {
+  // Set date in topbar
+  document.getElementById('topbar-date').textContent = APP.today();
+
+  // Render right panel profile
+  APP.renderProfile();
+
+  // Load right panel data
+  APP.loadRightPanelData();
+
+  // Load default view
+  APP.loadOverview();
+
+  // Populate member selects in modals
+  APP.populateSelects();
+};
+
+// ── Profile ──
+APP.renderProfile = function() {
+  const u = APP.currentUser;
+  if (!u) return;
+
+  const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email;
+  document.getElementById('profile-name').textContent  = name;
+  document.getElementById('profile-role').textContent  = APP.ROLES[u.role] || u.role || '—';
+  document.getElementById('profile-voice').textContent = u.voice || '';
+  document.getElementById('profile-motto').innerHTML   = u.motto ? `<em>"${u.motto}"</em>` : '<em>Add your personal motto</em>';
+  document.getElementById('profile-avatar-placeholder').textContent = APP.initials(name);
+
+  const score = u.score || 0;
+  const att   = u.attendanceRate || 0;
+  document.getElementById('ps-score').textContent = score;
+  document.getElementById('ps-att').textContent   = att + '%';
+};
+
+APP.loadRightPanelData = async function() {
+  try {
+    // Upcoming events
+    const evSnap = await db.collection('events')
+      .where('date', '>=', firebase.firestore.Timestamp.fromDate(new Date()))
+      .orderBy('date').limit(3).get();
+
+    const upEl = document.getElementById('rp-upcoming');
+    if (evSnap.empty) {
+      upEl.innerHTML = '<p class="muted" style="font-size:.78rem">No upcoming events.</p>';
+    } else {
+      upEl.innerHTML = evSnap.docs.map(d => {
+        const e = d.data();
+        return `
+          <div class="event-tag" style="margin-bottom:6px">
+            <div class="event-dot"></div>
+            <div>
+              <div style="font-weight:500;font-size:.78rem">${e.title}</div>
+              <div style="font-size:.68rem;color:var(--text-muted)">${APP.formatDateShort(e.date)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Recent transactions as activity
+    const txSnap = await db.collection('transactions').orderBy('date','desc').limit(5).get();
+    const actEl  = document.getElementById('rp-activity');
+    if (txSnap.empty) {
+      actEl.innerHTML = '<p class="muted" style="font-size:.78rem">No recent activity.</p>';
+    } else {
+      actEl.innerHTML = txSnap.docs.map(d => {
+        const t = d.data();
+        return `
+          <div class="activity-item">
+            <div class="activity-dot" style="background:${t.type==='income'?'#27ae60':'#c0392b'}"></div>
+            <div>
+              <div>${t.description || t.category}</div>
+              <div class="a-time">${APP.formatDateShort(t.date)} · ${APP.formatUGX(t.amount)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+  } catch(e) {
+    console.warn('Right panel load error:', e);
+  }
+};
+
+APP.saveProfile = async function() {
+  const u = APP.currentUser;
+  if (!u) return;
+
+  const data = {
+    firstName: document.getElementById('ep-first').value.trim(),
+    lastName:  document.getElementById('ep-last').value.trim(),
+    voice:     document.getElementById('ep-voice').value,
+    role:      document.getElementById('ep-role').value,
+    motto:     document.getElementById('ep-motto').value.trim(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  try {
+    await db.collection('members').doc(u.uid).set(data, { merge: true });
+    Object.assign(APP.currentUser, data);
+    APP.renderProfile();
+    APP.closeModal('modal-edit-profile');
+    APP.toast('Profile updated', 'success');
+  } catch(e) {
+    APP.toast('Error: ' + e.message, 'error');
+  }
+};
+
+// Open edit profile — pre-fill
+document.getElementById('modal-edit-profile').addEventListener('click', function() {
+  // This fires when opened via button
+});
+
+function openEditProfile() {
+  const u = APP.currentUser || {};
+  document.getElementById('ep-first').value = u.firstName || '';
+  document.getElementById('ep-last').value  = u.lastName  || '';
+  document.getElementById('ep-voice').value = u.voice     || '';
+  document.getElementById('ep-role').value  = u.role      || 'member';
+  document.getElementById('ep-motto').value = u.motto     || '';
+  APP.openModal('modal-edit-profile');
+}
+
+// Override to pre-fill on open
+const origEditProfile = APP.openModal.bind(APP);
+document.querySelector('[onclick="APP.openModal(\'modal-edit-profile\')"]')?.addEventListener('click', openEditProfile);
+
+// ── Populate selects in modals ──
+APP.populateSelects = async function() {
+  try {
+    const [memberSnap, eventSnap] = await Promise.all([
+      db.collection('members').orderBy('lastName').get(),
+      db.collection('events').orderBy('date','desc').get()
+    ]);
+
+    const memberOpts = memberSnap.docs.map(d => {
+      const m = d.data();
+      return `<option value="${d.id}">${m.firstName} ${m.lastName}</option>`;
+    }).join('');
+
+    const eventOpts = eventSnap.docs.map(d => {
+      const e = d.data();
+      return `<option value="${d.id}">${e.title}</option>`;
+    }).join('');
+
+    // Transaction modal
+    document.getElementById('ft-member').innerHTML = '<option value="">None</option>' + memberOpts;
+    document.getElementById('ft-event').innerHTML  = '<option value="">None</option>' + eventOpts;
+
+    // Contribution modal
+    document.getElementById('fc-member').innerHTML = '<option value="">Select member</option>' + memberOpts;
+
+    // Set today's date in date fields
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('ft-date').value = today;
+    document.getElementById('fc-date').value = today;
+
+  } catch(e) {
+    console.warn('Populate selects error:', e);
+  }
+};
+
+// ── Mobile helpers ──
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+function toggleRightPanel() {
+  const rp = document.getElementById('right-panel');
+  rp.classList.toggle('open');
+}
+
+// Edit profile button override
+document.querySelector('[onclick="APP.openModal(\'modal-edit-profile\')"]')?.addEventListener('click', function(e) {
+  e.preventDefault();
+  openEditProfile();
+}, true);
+
+</script>
+</body>
+</html>

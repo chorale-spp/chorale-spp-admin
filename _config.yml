@@ -1,0 +1,16 @@
+title: Chorale Saint Padre Pio — Admin Portal
+description: Internal management system for Chorale Saint Padre Pio
+baseurl: ""
+url: ""
+
+plugins:
+  - jekyll-seo-tag
+
+markdown: kramdown
+permalink: pretty
+
+exclude:
+  - node_modules
+  - Gemfile
+  - Gemfile.lock
+  - README.md
