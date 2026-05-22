@@ -416,30 +416,54 @@ APP.editMember = function(id) {
 
   const modal = document.getElementById('modal-add-member');
   modal.querySelector('.modal-header h3').textContent = 'Edit Member';
-  modal.querySelector('#form-member-id').value      = id;
-  modal.querySelector('#fm-first').value            = m.firstName || '';
-  modal.querySelector('#fm-last').value             = m.lastName  || '';
-  modal.querySelector('#fm-email').value            = m.email     || '';
-  modal.querySelector('#fm-phone').value            = m.phone     || '';
-  modal.querySelector('#fm-voice').value            = m.voice     || '';
-  modal.querySelector('#fm-role').value             = m.role      || '';
-  modal.querySelector('#fm-join').value             = m.joinDate  ? (m.joinDate.toDate ? m.joinDate.toDate().toISOString().split('T')[0] : m.joinDate) : '';
-  modal.querySelector('#fm-motto').value            = m.motto     || '';
+  modal.querySelector('#form-member-id').value = id;
+  modal.querySelector('#fm-first').value       = m.firstName || '';
+  modal.querySelector('#fm-last').value        = m.lastName  || '';
+  modal.querySelector('#fm-email').value       = m.email     || '';
+  modal.querySelector('#fm-phone').value       = m.phone     || '';
+  modal.querySelector('#fm-voice').value       = m.voice     || '';
+  modal.querySelector('#fm-role').value        = m.role      || '';
+  modal.querySelector('#fm-join').value        = m.joinDate  ? (m.joinDate.toDate ? m.joinDate.toDate().toISOString().split('T')[0] : m.joinDate) : '';
+  modal.querySelector('#fm-motto').value       = m.motto     || '';
+
+  // Hide UID field when editing — UID cannot be changed
+  const uidGroup   = document.getElementById('fm-uid-group');
+  const uidDivider = document.getElementById('fm-uid-divider');
+  if (uidGroup)   uidGroup.style.display   = 'none';
+  if (uidDivider) uidDivider.style.display = 'none';
+
   APP.openModal('modal-add-member');
 };
 
 APP.saveMember = async function() {
-  const id        = document.getElementById('form-member-id').value;
-  const firstName = document.getElementById('fm-first').value.trim();
-  const lastName  = document.getElementById('fm-last').value.trim();
-  const email     = document.getElementById('fm-email').value.trim();
-  const phone     = document.getElementById('fm-phone').value.trim();
-  const voice     = document.getElementById('fm-voice').value;
-  const role      = document.getElementById('fm-role').value;
-  const joinDate  = document.getElementById('fm-join').value;
-  const motto     = document.getElementById('fm-motto').value.trim();
+  const existingId = document.getElementById('form-member-id').value;
+  const uid        = document.getElementById('fm-uid')?.value.trim();
+  const firstName  = document.getElementById('fm-first').value.trim();
+  const lastName   = document.getElementById('fm-last').value.trim();
+  const email      = document.getElementById('fm-email').value.trim();
+  const phone      = document.getElementById('fm-phone').value.trim();
+  const voice      = document.getElementById('fm-voice').value;
+  const role       = document.getElementById('fm-role').value;
+  const joinDate   = document.getElementById('fm-join').value;
+  const motto      = document.getElementById('fm-motto').value.trim();
 
   if (!firstName || !lastName) { APP.toast('First and last name required', 'error'); return; }
+
+  // When adding new, UID is required
+  if (!existingId) {
+    if (!uid) {
+      document.getElementById('fm-uid').style.borderColor = '#c0392b';
+      document.getElementById('fm-uid').style.boxShadow  = '0 0 0 3px rgba(192,57,43,0.15)';
+      APP.toast('Firebase UID is required to link the login account', 'error');
+      return;
+    }
+    // Check UID not already in use
+    const existing = await db.collection('members').doc(uid).get();
+    if (existing.exists) {
+      APP.toast('A member with this UID already exists', 'error');
+      return;
+    }
+  }
 
   const data = { firstName, lastName, email, phone, voice, role, motto,
     joinDate: joinDate ? firebase.firestore.Timestamp.fromDate(new Date(joinDate)) : null,
@@ -447,28 +471,41 @@ APP.saveMember = async function() {
   };
 
   try {
-    if (id) {
-      const oldData = { ...(APP._members || []).find(m => m.id === id) };
-      await db.collection('members').doc(id).update(data);
+    if (existingId) {
+      // Editing existing member
+      const oldData = { ...(APP._members || []).find(m => m.id === existingId) };
+      await db.collection('members').doc(existingId).update(data);
       APP.toast('Member updated', 'success');
       APP.pushUndo({ label: `Undo update: ${firstName} ${lastName}`, fn: async () => {
-        await db.collection('members').doc(id).update(oldData);
+        await db.collection('members').doc(existingId).update(oldData);
         APP.loadMembers();
       }});
     } else {
-      const ref = await db.collection('members').add({ ...data, score: 100, attendanceRate: 100, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-      APP.toast('Member added successfully', 'success');
+      // New member — use UID as document ID so login links automatically
+      await db.collection('members').doc(uid).set({
+        ...data,
+        score: 100,
+        attendanceRate: 100,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      APP.toast(`${firstName} ${lastName} added and linked to their login`, 'success');
       APP.pushUndo({ label: `Undo add: ${firstName} ${lastName}`, fn: async () => {
-        await db.collection('members').doc(ref.id).delete();
+        await db.collection('members').doc(uid).delete();
         APP.loadMembers();
       }});
     }
+
     APP.closeModal('modal-add-member');
     APP._members = null;
     APP.loadMembers();
-    // reset form
+
+    // Reset form
     document.getElementById('form-member-id').value = '';
+    document.getElementById('fm-uid').value          = '';
+    document.getElementById('fm-uid').style.borderColor = '';
+    document.getElementById('fm-uid').style.boxShadow   = '';
     document.getElementById('modal-add-member').querySelector('.modal-header h3').textContent = 'Add Member';
+
   } catch(e) {
     APP.toast('Save failed: ' + e.message, 'error');
   }
@@ -1317,3 +1354,63 @@ APP.addEventTransaction = function(eventId) {
     if (sel) sel.value = eventId;
   }, 100);
 };
+
+
+// ── ANNOUNCEMENTS SECTION ─────────────────
+APP.loadAnnouncementsSection = function() {
+  const el = document.getElementById('view-announcements');
+  if (!el) return;
+
+  const canPost = APP.canEdit('announcements');
+
+  el.innerHTML = `
+    <div class="page-header">
+      <div class="eyebrow">Communication</div>
+      <h2>Notice <em>Board</em></h2>
+      <div class="divider"></div>
+      <div class="subtitle">Choir-wide announcements visible to all members</div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <h3>Announcements</h3>
+        ${canPost ? '<span class="badge badge-green"><i class="fas fa-pen" style="margin-right:4px"></i>You can post</span>' : '<span class="badge badge-gray"><i class="fas fa-eye" style="margin-right:4px"></i>View only</span>'}
+      </div>
+      <div class="card-body">
+        <div id="announcements-container">
+          <div style="text-align:center;padding:20px">
+            <div class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--gold);margin:auto"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  APP.loadAnnouncements('announcements-container', canPost);
+};
+
+// Patch navigate to handle announcements + apply role locks
+const _origNavigate = APP.navigate.bind(APP);
+APP.navigate = function(section) {
+  _origNavigate(section);
+
+  if (section === 'announcements') {
+    APP.loadAnnouncementsSection();
+    return;
+  }
+
+  // Apply edit lock after section loads (slight delay for DOM)
+  setTimeout(() => APP.applyEditLock(section), 400);
+};
+
+// Also patch loaders to apply locks after render
+['loadMembers','loadAttendance','loadEvents','loadFinances'].forEach(fn => {
+  const orig = APP[fn].bind(APP);
+  APP[fn] = async function() {
+    await orig();
+    const sectionMap = {
+      loadMembers: 'members', loadAttendance: 'attendance',
+      loadEvents: 'events', loadFinances: 'finances'
+    };
+    setTimeout(() => APP.applyEditLock(sectionMap[fn]), 400);
+  };
+});
