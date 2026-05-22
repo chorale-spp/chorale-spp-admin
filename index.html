@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chorale Saint Padre Pio — Admin Portal</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<!-- App Loading -->
+<div id="app-loading">
+  <img src="assets/img/logo.png" alt="Logo" onerror="this.style.display='none'">
+  <p>Loading Portal</p>
+</div>
+
+<div class="login-page">
+
+  <!-- Hero Panel -->
+  <div class="login-hero" id="login-hero">
+    <img src="assets/img/hero-login.jpg" alt="Choir" class="login-hero-img" id="hero-img"
+         onerror="this.style.display='none'">
+    <div class="login-hero-overlay"></div>
+    <div class="login-hero-content">
+      <div class="eyebrow">Est. 2022 · Chorale Saint Padre Pio</div>
+      <h1>Where <em>voices</em><br>become one</h1>
+    </div>
+  </div>
+
+  <!-- Login Panel -->
+  <div class="login-panel">
+    <div class="login-logo">
+      <img src="assets/img/logo.png" alt="Logo" onerror="this.remove()">
+      <div class="login-logo-text">
+        ADMIN PORTAL
+        <strong>Chorale <em>Saint Padre Pio</em></strong>
+      </div>
+    </div>
+
+    <div class="login-form-box">
+      <h2>Welcome <em>back</em></h2>
+      <p class="subtitle">Sign in to access the choir management portal</p>
+
+      <div class="form-group">
+        <label for="login-email"><i class="fas fa-envelope" style="margin-right:6px"></i>Email Address</label>
+        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label for="login-password"><i class="fas fa-lock" style="margin-right:6px"></i>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+
+      <button class="btn-primary" id="login-btn" onclick="handleLogin()">
+        <span id="login-btn-text">Sign In</span>
+        <i class="fas fa-arrow-right"></i>
+      </button>
+
+      <div class="error-msg" id="login-error"></div>
+
+      <div style="text-align:center;margin-top:24px">
+        <a href="#" onclick="handleForgotPassword()" style="font-size:.75rem;color:var(--text-muted)">
+          Forgot password?
+        </a>
+      </div>
+    </div>
+
+    <!-- Change hero image (small link at bottom) -->
+    <div style="position:absolute;bottom:20px;right:24px">
+      <label for="hero-upload" style="font-size:.65rem;color:var(--text-light);cursor:pointer;display:flex;align-items:center;gap:5px">
+        <i class="fas fa-image"></i> Change hero image
+      </label>
+      <input type="file" id="hero-upload" accept="image/*" style="display:none" onchange="changeHeroImage(event)">
+    </div>
+  </div>
+
+</div>
+
+<script src="assets/js/firebase-init.js"></script>
+<script>
+  // Enter key support
+  document.getElementById('login-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLogin();
+  });
+
+  async function handleLogin() {
+    const email    = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const btn      = document.getElementById('login-btn');
+    const errEl    = document.getElementById('login-error');
+
+    if (!email || !password) {
+      showError('Please enter your email and password.');
+      return;
+    }
+
+    btn.innerHTML = '<div class="spinner"></div>';
+    btn.disabled = true;
+    errEl.classList.remove('visible');
+
+    try {
+      await window.signIn(email, password);
+      // onAuthStateChanged will redirect
+    } catch (e) {
+      btn.innerHTML = '<span>Sign In</span><i class="fas fa-arrow-right"></i>';
+      btn.disabled = false;
+
+      const msgs = {
+        'auth/user-not-found':  'No account found with this email.',
+        'auth/wrong-password':  'Incorrect password.',
+        'auth/invalid-email':   'Invalid email address.',
+        'auth/too-many-requests': 'Too many attempts. Please try again later.',
+      };
+      showError(msgs[e.code] || 'Sign in failed. Please try again.');
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('login-error');
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+
+  function handleForgotPassword() {
+    const email = document.getElementById('login-email').value.trim();
+    if (!email) {
+      showError('Enter your email first, then click forgot password.');
+      return;
+    }
+    auth.sendPasswordResetEmail(email).then(() => {
+      document.getElementById('login-error').textContent = '';
+      document.getElementById('login-error').classList.remove('visible');
+      alert('Password reset email sent to ' + email);
+    }).catch(e => showError(e.message));
+  }
+
+  function changeHeroImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = document.getElementById('hero-img');
+      if (img) {
+        img.src = e.target.result;
+        img.style.display = 'block';
+      }
+      // Save to localStorage so it persists
+      try { localStorage.setItem('chorale_hero_img', e.target.result); } catch(err) {}
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Restore saved hero image
+  try {
+    const saved = localStorage.getItem('chorale_hero_img');
+    if (saved) {
+      const img = document.getElementById('hero-img');
+      if (img) { img.src = saved; img.style.display = 'block'; }
+    }
+  } catch(e) {}
+</script>
+</body>
+</html>
