@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Portal — Chorale Saint Padre Pio</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+  <style>
+    /* ── Member portal specific overrides ── */
+    .member-layout {
+      min-height: 100vh;
+      background: var(--cream-light);
+    }
+
+    /* Member topbar */
+    .member-topbar {
+      background: var(--dark);
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .member-topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .member-topbar-brand img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
+
+    .member-topbar-brand span {
+      font-family: var(--font-serif);
+      font-size: 1rem;
+      color: white;
+    }
+
+    .member-topbar-brand span em {
+      color: var(--gold-light);
+      font-style: italic;
+    }
+
+    .member-topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .member-nav-tabs {
+      display: flex;
+      gap: 4px;
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .member-tab {
+      padding: 14px 18px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      background: none;
+      border-left: none;
+      border-right: none;
+      border-top: none;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .member-tab:hover { color: var(--gold); }
+
+    .member-tab.active {
+      color: var(--gold);
+      border-bottom-color: var(--gold);
+    }
+
+    .member-page { padding: 28px 24px; max-width: 900px; margin: 0 auto; }
+
+    /* Score ring */
+    .score-ring-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .score-ring {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .score-ring svg {
+      position: absolute;
+      top: 0; left: 0;
+      transform: rotate(-90deg);
+    }
+
+    .score-ring-value {
+      font-family: var(--font-serif);
+      font-size: 2rem;
+      font-weight: 400;
+      position: relative;
+      z-index: 1;
+      line-height: 1;
+    }
+
+    .score-ring-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Absence form */
+    .absence-card {
+      background: white;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    /* Leaderboard */
+    .leaderboard-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+      transition: background 0.15s;
+    }
+
+    .leaderboard-row:hover { background: rgba(184,151,58,0.04); }
+
+    .leaderboard-rank {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .rank-1 { background: #FFD700; color: #7a6000; }
+    .rank-2 { background: #C0C0C0; color: #555; }
+    .rank-3 { background: #CD7F32; color: #5a3010; }
+    .rank-other { background: var(--cream); color: var(--text-muted); }
+
+    .leaderboard-row.is-me {
+      background: rgba(184,151,58,0.08);
+      border-left: 3px solid var(--gold);
+    }
+
+    /* Login screen for members */
+    .member-login {
+      min-height: 100vh;
+      background: var(--dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .member-login::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url('assets/img/hero-login.jpg') center/cover no-repeat;
+      opacity: 0.15;
+    }
+
+    .member-login-box {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+
+    .member-login-logo {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .member-login-logo img {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      margin: 0 auto 12px;
+    }
+
+    .member-login-logo h2 {
+      font-family: var(--font-serif);
+      font-size: 1.6rem;
+    }
+
+    .member-login-logo h2 em { color: var(--gold); font-style: italic; }
+
+    .member-login-logo p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    @media (max-width: 640px) {
+      .member-page { padding: 18px 16px; }
+      .member-nav-tabs { padding: 0 12px; }
+      .member-tab { padding: 12px 12px; font-size: .68rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- App Loading -->
+<div id="app-loading">
+  <img src="assets/img/logo.png" alt="Logo" onerror="this.style.display='none'">
+  <p>Loading Your Portal</p>
+</div>
+
+<!-- ═══════════════ MEMBER LOGIN ═══════════════ -->
+<div id="member-login-screen" style="display:none">
+  <div class="member-login">
+    <div class="member-login-box">
+      <div class="member-login-logo">
+        <img src="assets/img/logo.png" alt="Logo" onerror="this.remove()">
+        <h2>Member <em>Portal</em></h2>
+        <p>Chorale Saint Padre Pio</p>
+      </div>
+
+      <div class="form-group">
+        <label for="ml-email"><i class="fas fa-envelope" style="margin-right:6px"></i>Email Address</label>
+        <input type="email" id="ml-email" placeholder="you@example.com" autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label for="ml-password"><i class="fas fa-lock" style="margin-right:6px"></i>Password</label>
+        <input type="password" id="ml-password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+
+      <button class="btn-primary" id="ml-btn" onclick="memberSignIn()">
+        <span>Sign In</span>
+        <i class="fas fa-arrow-right"></i>
+      </button>
+
+      <div class="error-msg" id="ml-error"></div>
+
+      <div style="text-align:center;margin-top:16px">
+        <a href="#" onclick="memberForgotPassword()" style="font-size:.75rem;color:var(--text-muted)">Forgot password?</a>
+      </div>
+
+      <div style="text-align:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <a href="index.html" style="font-size:.72rem;color:var(--text-light);display:inline-flex;align-items:center;gap:6px">
+          <i class="fas fa-shield-alt"></i> Admin Portal
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MEMBER DASHBOARD ═══════════════ -->
+<div id="member-dashboard" style="display:none">
+  <div class="member-layout">
+
+    <!-- Topbar -->
+    <div class="member-topbar">
+      <div class="member-topbar-brand">
+        <img src="assets/img/logo.png" alt="Logo" onerror="this.remove()">
+        <span>Chorale <em>Saint Padre Pio</em></span>
+      </div>
+      <div class="member-topbar-right">
+        <div id="mb-topbar-name" style="font-size:.78rem;color:rgba(255,255,255,.6)"></div>
+        <button class="topbar-btn" onclick="memberSignOut()" title="Sign out" style="color:rgba(255,255,255,.5)">
+          <i class="fas fa-sign-out-alt"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Nav tabs -->
+    <div class="member-nav-tabs">
+      <button class="member-tab active" data-tab="home" onclick="memberNav('home')">
+        <i class="fas fa-home"></i> My Dashboard
+      </button>
+      <button class="member-tab" data-tab="attendance" onclick="memberNav('attendance')">
+        <i class="fas fa-clipboard-check"></i> Attendance
+      </button>
+      <button class="member-tab" data-tab="contributions" onclick="memberNav('contributions')">
+        <i class="fas fa-coins"></i> Contributions
+      </button>
+      <button class="member-tab" data-tab="absence" onclick="memberNav('absence')">
+        <i class="fas fa-calendar-times"></i> Absence
+      </button>
+      <button class="member-tab" data-tab="leaderboard" onclick="memberNav('leaderboard')">
+        <i class="fas fa-trophy"></i> Leaderboard
+      </button>
+      <button class="member-tab" data-tab="noticeboard" onclick="memberNav('noticeboard')">
+        <i class="fas fa-bullhorn"></i> Notice Board
+        <span id="mb-notif-dot" style="display:none;width:7px;height:7px;border-radius:50%;background:#c0392b;margin-left:2px"></span>
+      </button>
+      <button class="member-tab" data-tab="profile" onclick="memberNav('profile')">
+        <i class="fas fa-user"></i> My Profile
+      </button>
+    </div>
+
+    <!-- Pages -->
+    <div class="member-page">
+
+      <!-- HOME -->
+      <div id="mb-view-home" class="section-view active">
+        <div class="page-header">
+          <div class="eyebrow">Welcome</div>
+          <h2 id="mb-welcome-name">Hello, <em>Member</em></h2>
+          <div class="divider"></div>
+          <div class="subtitle" id="mb-welcome-date"></div>
+        </div>
+
+        <div class="grid-2 mb-20">
+          <!-- Score card -->
+          <div class="card">
+            <div class="card-header"><h3>Your Score</h3></div>
+            <div class="card-body" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+              <div class="score-ring-wrap">
+                <div class="score-ring" id="mb-score-ring">
+                  <svg width="110" height="110" viewBox="0 0 110 110">
+                    <circle cx="55" cy="55" r="48" fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="8"/>
+                    <circle id="mb-ring-arc" cx="55" cy="55" r="48" fill="none"
+                      stroke="var(--gold)" stroke-width="8"
+                      stroke-dasharray="301.6" stroke-dashoffset="301.6"
+                      stroke-linecap="round" style="transition:stroke-dashoffset 1s ease"/>
+                  </svg>
+                  <div class="score-ring-value" id="mb-score-val">—</div>
+                  <div class="score-ring-label">/ 100</div>
+                </div>
+                <div id="mb-score-badge"></div>
+              </div>
+              <div style="flex:1;min-width:140px">
+                <div style="margin-bottom:14px">
+                  <div style="font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:6px">Attendance</div>
+                  <div class="progress-bar-wrap">
+                    <div class="progress-bar-fill" id="mb-att-bar" style="width:0%"></div>
+                  </div>
+                  <div style="font-size:.75rem;margin-top:4px" id="mb-att-pct">—</div>
+                </div>
+                <div style="margin-bottom:14px">
+                  <div style="font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:6px">Performance</div>
+                  <div class="progress-bar-wrap">
+                    <div class="progress-bar-fill" id="mb-perf-bar" style="width:0%;background:#3498db"></div>
+                  </div>
+                  <div style="font-size:.75rem;margin-top:4px" id="mb-perf-lbl">—</div>
+                </div>
+                <div>
+                  <div style="font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:6px">Contributions</div>
+                  <div class="progress-bar-wrap">
+                    <div class="progress-bar-fill" id="mb-fin-bar" style="width:0%;background:#27ae60"></div>
+                  </div>
+                  <div style="font-size:.75rem;margin-top:4px" id="mb-fin-lbl">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upcoming events -->
+          <div class="card">
+            <div class="card-header"><h3>Upcoming Events</h3></div>
+            <div class="card-body" id="mb-upcoming-events">
+              <div style="text-align:center;padding:20px">
+                <div class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--gold);margin:auto"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Latest announcement preview -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Latest Announcement</h3>
+            <button class="btn-ghost" onclick="memberNav('noticeboard')">See all <i class="fas fa-arrow-right" style="font-size:.7rem"></i></button>
+          </div>
+          <div class="card-body" id="mb-latest-ann">
+            <p class="muted" style="font-size:.82rem">Loading...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ATTENDANCE -->
+      <div id="mb-view-attendance" class="section-view">
+        <div class="page-header">
+          <div class="eyebrow">My Record</div>
+          <h2>Attendance <em>History</em></h2>
+          <div class="divider"></div>
+        </div>
+        <div class="stats-grid mb-20" id="mb-att-stats"></div>
+        <div class="card">
+          <div class="card-header"><h3>Full Register</h3></div>
+          <div class="card-body" style="padding:0" id="mb-att-table">
+            <div style="text-align:center;padding:30px">
+              <div class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--gold);margin:auto"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTRIBUTIONS -->
+      <div id="mb-view-contributions" class="section-view">
+        <div class="page-header">
+          <div class="eyebrow">My Finances</div>
+          <h2>Contributions <em>Record</em></h2>
+          <div class="divider"></div>
+        </div>
+        <div class="stats-grid mb-20" id="mb-fin-stats"></div>
+        <div class="card mb-20">
+          <div class="card-header"><h3>Payment History</h3></div>
+          <div class="card-body" style="padding:0" id="mb-contributions-list">
+            <div style="text-align:center;padding:30px">
+              <div class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--gold);margin:auto"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABSENCE -->
+      <div id="mb-view-absence" class="section-view">
+        <div class="page-header">
+          <div class="eyebrow">Notify</div>
+          <h2>Absence <em>Notification</em></h2>
+          <div class="divider"></div>
+          <div class="subtitle">Submit in advance so your voice responsable is informed.</div>
+        </div>
+
+        <div class="absence-card">
+          <div style="font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:16px">Submit an Absence</div>
+          <div class="form-row">
+            <div class="form-group-sm">
+              <label>Date of Absence *</label>
+              <input type="date" id="abs-date">
+            </div>
+            <div class="form-group-sm">
+              <label>Session Type</label>
+              <select id="abs-type" style="padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);font-size:.83rem;outline:none;background:var(--cream-light);width:100%">
+                <option value="rehearsal">Rehearsal</option>
+                <option value="event">Event</option>
+                <option value="meeting">Meeting</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group-sm">
+            <label>Reason *</label>
+            <textarea id="abs-reason" rows="3"
+              style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);font-size:.83rem;resize:vertical;background:var(--cream-light);outline:none"
+              placeholder="Brief reason for your absence..."></textarea>
+          </div>
+          <button class="btn-primary" style="width:auto;padding:10px 22px;margin-top:4px" onclick="submitAbsence()">
+            <i class="fas fa-paper-plane"></i> Submit Notification
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>My Absence History</h3></div>
+          <div class="card-body" style="padding:0" id="mb-absence-list">
+            <div style="text-align:center;padding:20px">
+              <div class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--gold);margin:auto"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEADERBOARD -->
+      <div id="mb-view-leaderboard" class="section-view">
+        <div class="page-header">
+          <div class="eyebrow">Rankings</div>
+          <h2>Member <em>Leaderboard</em></h2>
+          <div class="divider"></div>
+          <div class="subtitle">Scores update automatically based on attendance, performance and contributions.</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>All Members</h3>
+            <div style="display:flex;gap:8px">
+              <select id="lb-voice-filter" onchange="renderLeaderboard()" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:.78rem;outline:none;background:white">
+                <option value="">All Voices</option>
+                <option>Soprano</option><option>Alto</option><option>Tenor</option><option>Bass</option>
+              </select>
+            </div>
+          </div>
+          <div id="mb-leaderboard-list"></div>
+        </div>
+      </div>
+
+      <!-- NOTICE BOARD -->
+      <div id="mb-view-noticeboard" class="section-view">
+        <div class="page-header">
+          <div class="eyebrow">Communication</div>
+          <h2>Notice <em>Board</em></h2>
+          <div class="divider"></div>
+        </div>
+        <div class="card">
+          <div class="card-body" id="announcements-container">
+            <div style="text-align:center;padding:20px">
+              <div class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--gold);margin:auto"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div id="mb-view-profile" class="section-view">
+        <div class="page-header">
+          <div class="eyebrow">Account</div>
+          <h2>My <em>Profile</em></h2>
+          <div class="divider"></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><h3>Personal Information</h3></div>
+            <div class="card-body">
+              <div id="mb-profile-display"></div>
+              <button class="btn-secondary mt-16" onclick="toggleProfileEdit(true)">
+                <i class="fas fa-pencil-alt"></i> Edit Profile
+              </button>
+            </div>
+          </div>
+
+          <div class="card" id="mb-profile-edit-card" style="display:none">
+            <div class="card-header"><h3>Edit Profile</h3></div>
+            <div class="card-body">
+              <div class="form-group-sm">
+                <label>First Name</label>
+                <input type="text" id="mbp-first">
+              </div>
+              <div class="form-group-sm">
+                <label>Last Name</label>
+                <input type="text" id="mbp-last">
+              </div>
+              <div class="form-group-sm">
+                <label>Phone</label>
+                <input type="tel" id="mbp-phone">
+              </div>
+              <div class="form-group-sm">
+                <label>Personal Motto</label>
+                <input type="text" id="mbp-motto" placeholder="Your personal motto...">
+              </div>
+              <div style="display:flex;gap:8px;margin-top:14px">
+                <button class="btn-primary" style="width:auto;padding:9px 18px" onclick="saveProfile()">
+                  <i class="fas fa-save"></i> Save
+                </button>
+                <button class="btn-ghost" onclick="toggleProfileEdit(false)">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Change Password -->
+        <div class="card mt-16" style="margin-top:20px">
+          <div class="card-header"><h3>Change Password</h3></div>
+          <div class="card-body" style="max-width:400px">
+            <div class="form-group-sm">
+              <label>Current Password</label>
+              <input type="password" id="pwd-current" placeholder="••••••••">
+            </div>
+            <div class="form-group-sm">
+              <label>New Password</label>
+              <input type="password" id="pwd-new" placeholder="Minimum 6 characters">
+            </div>
+            <div class="form-group-sm">
+              <label>Confirm New Password</label>
+              <input type="password" id="pwd-confirm" placeholder="••••••••">
+            </div>
+            <button class="btn-primary" style="width:auto;padding:10px 22px;margin-top:4px" onclick="changePassword()">
+              <i class="fas fa-key"></i> Update Password
+            </button>
+            <div class="error-msg" id="pwd-error"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /member-page -->
+  </div><!-- /member-layout -->
+</div><!-- /member-dashboard -->
+
+
+<script src="assets/js/firebase-init.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/announcements.js"></script>
+
+<script>
+// ============================================
+// MEMBER PORTAL LOGIC
+// ============================================
+
+let MEMBER_DATA     = null;
+let MEMBER_ATT      = [];
+let MEMBER_PERF     = [];
+let MEMBER_CONTRIB  = [];
+let ALL_MEMBERS     = [];
+let _memberInitDone = false;
+
+// ── Member portal auth handler ──
+// Runs independently from firebase-init.js (which skips member portal)
+const ADMIN_ROLES_M = [
+  'music_director','secretary','treasurer','archivist',
+  'maestro','discipline_dir','discipline_vic','voice_resp'
+];
+
+window.addEventListener('load', () => {
+  auth.onAuthStateChanged(async (user) => {
+    const loading = document.getElementById('app-loading');
+
+    if (user) {
+      try {
+        const snap = await db.collection('members').doc(user.uid).get();
+
+        if (!snap.exists) {
+          // UID not linked to any member record
+          await auth.signOut();
+          if (loading) { loading.style.opacity='0'; setTimeout(()=>loading.remove(),400); }
+          document.getElementById('member-login-screen').style.display = 'block';
+          document.getElementById('member-dashboard').style.display    = 'none';
+          showMlError('Your account is not linked to a member record. Contact the Secretary.');
+          return;
+        }
+
+        const profile = { uid: user.uid, email: user.email, ...snap.data() };
+        const role    = profile.role || '';
+
+        // Admin trying to use member portal — redirect them
+        if (ADMIN_ROLES_M.includes(role)) {
+          await auth.signOut();
+          if (loading) { loading.style.opacity='0'; setTimeout(()=>loading.remove(),400); }
+          document.getElementById('member-login-screen').style.display = 'block';
+          document.getElementById('member-dashboard').style.display    = 'none';
+          showMlError('Admin accounts use the Admin Portal. Click "Admin Portal" below.');
+          return;
+        }
+
+        window.APP = window.APP || {};
+        APP.currentUser = profile;
+        MEMBER_DATA     = profile;
+
+      } catch(e) {
+        console.error('Auth error:', e);
+        MEMBER_DATA = { uid: user.uid, email: user.email };
+        APP.currentUser = MEMBER_DATA;
+      }
+
+      if (loading) { loading.style.opacity='0'; loading.style.transition='opacity .4s'; setTimeout(()=>loading.remove(),400); }
+      document.getElementById('member-login-screen').style.display = 'none';
+      document.getElementById('member-dashboard').style.display    = 'block';
+
+      if (!_memberInitDone) {
+        _memberInitDone = true;
+        initMemberPortal();
+      }
+
+    } else {
+      if (loading) { loading.style.opacity='0'; loading.style.transition='opacity .4s'; setTimeout(()=>loading.remove(),400); }
+      document.getElementById('member-login-screen').style.display = 'block';
+      document.getElementById('member-dashboard').style.display    = 'none';
+    }
+  });
+});
+
+// ── Sign in / out ──
+async function memberSignIn() {
+  const email    = document.getElementById('ml-email').value.trim();
+  const password = document.getElementById('ml-password').value;
+  const btn      = document.getElementById('ml-btn');
+  const errEl    = document.getElementById('ml-error');
+
+  if (!email || !password) { showMlError('Please enter your email and password.'); return; }
+
+  btn.innerHTML = '<div class="spinner"></div>';
+  btn.disabled  = true;
+  errEl.classList.remove('visible');
+
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+  } catch(e) {
+    btn.innerHTML = '<span>Sign In</span><i class="fas fa-arrow-right"></i>';
+    btn.disabled  = false;
+    const msgs = {
+      'auth/user-not-found': 'No account found with this email.',
+      'auth/wrong-password': 'Incorrect password.',
+      'auth/invalid-email':  'Invalid email address.',
+      'auth/too-many-requests': 'Too many attempts. Try again later.'
+    };
+    showMlError(msgs[e.code] || 'Sign in failed.');
+  }
+}
+
+function memberSignOut() {
+  auth.signOut();
+  _memberInitDone = false;
+  MEMBER_DATA = null;
+}
+
+function memberForgotPassword() {
+  const email = document.getElementById('ml-email').value.trim();
+  if (!email) { showMlError('Enter your email first.'); return; }
+  auth.sendPasswordResetEmail(email)
+    .then(() => alert('Password reset email sent to ' + email))
+    .catch(e => showMlError(e.message));
+}
+
+function showMlError(msg) {
+  const el = document.getElementById('ml-error');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+
+document.getElementById('ml-password')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') memberSignIn();
+});
+
+// ── Navigation ──
+function memberNav(tab) {
+  document.querySelectorAll('.section-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.member-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`mb-view-${tab}`)?.classList.add('active');
+  document.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
+
+  const loaders = {
+    attendance:    loadMemberAttendance,
+    contributions: loadMemberContributions,
+    absence:       loadMemberAbsences,
+    leaderboard:   loadLeaderboard,
+    noticeboard:   () => APP.loadAnnouncements('announcements-container', false),
+    profile:       loadMemberProfile
+  };
+
+  if (loaders[tab]) loaders[tab]();
+}
+
+// ── Initialize portal ──
+async function initMemberPortal() {
+  const u = MEMBER_DATA;
+  const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email;
+
+  // Topbar name
+  document.getElementById('mb-topbar-name').textContent = name;
+
+  // Welcome
+  document.getElementById('mb-welcome-name').innerHTML = `Hello, <em>${u.firstName || 'Member'}</em>`;
+  document.getElementById('mb-welcome-date').textContent = APP.today();
+
+  // Load all member data in parallel
+  try {
+    const [attSnap, perfSnap, contSnap, evSnap, annSnap, allMembSnap] = await Promise.all([
+      db.collection('attendance').where('memberId','==',u.uid).orderBy('date','desc').get(),
+      db.collection('performance').where('memberId','==',u.uid).orderBy('date','desc').get(),
+      db.collection('contributions').where('memberId','==',u.uid).orderBy('date','desc').get(),
+      db.collection('events').where('date','>=', firebase.firestore.Timestamp.fromDate(new Date())).orderBy('date').limit(5).get(),
+      db.collection('announcements').orderBy('createdAt','desc').limit(1).get(),
+      db.collection('members').orderBy('score','desc').get()
+    ]);
+
+    MEMBER_ATT     = attSnap.docs.map(d  => ({id:d.id,...d.data()}));
+    MEMBER_PERF    = perfSnap.docs.map(d => ({id:d.id,...d.data()}));
+    MEMBER_CONTRIB = contSnap.docs.map(d => ({id:d.id,...d.data()}));
+    ALL_MEMBERS    = allMembSnap.docs.map(d => ({id:d.id,...d.data()}));
+
+    // Score
+    const score = APP.calcMemberScore(u, {
+      attendanceRecords:    MEMBER_ATT,
+      performanceRecords:   MEMBER_PERF,
+      contributionRecords:  MEMBER_CONTRIB
+    });
+
+    renderScoreRing(score);
+    renderHomeBars();
+
+    // Upcoming events
+    const evEl = document.getElementById('mb-upcoming-events');
+    if (evSnap.empty) {
+      evEl.innerHTML = '<p class="muted" style="font-size:.82rem">No upcoming events.</p>';
+    } else {
+      evEl.innerHTML = evSnap.docs.map(d => {
+        const e = d.data();
+        return `
+          <div class="event-tag" style="margin-bottom:8px">
+            <div class="event-dot"></div>
+            <div>
+              <div style="font-weight:500;font-size:.84rem">${e.title}</div>
+              <div style="font-size:.72rem;color:var(--text-muted)">${APP.formatDate(e.date)} · ${e.venue||'TBD'}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Latest announcement
+    const annEl = document.getElementById('mb-latest-ann');
+    if (annSnap.empty) {
+      annEl.innerHTML = '<p class="muted" style="font-size:.82rem">No announcements yet.</p>';
+    } else {
+      const a = annSnap.docs[0].data();
+      const typeColors = { urgent:'badge-red', rehearsal:'badge-blue', event:'badge-gold', general:'badge-gray' };
+      annEl.innerHTML = `
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span class="badge ${typeColors[a.type]||'badge-gray'}">${a.type}</span>
+            <span style="font-size:.7rem;color:var(--text-muted)">${APP.formatDate(a.createdAt)}</span>
+          </div>
+          <div style="font-weight:600;font-size:.9rem;margin-bottom:4px">${a.title}</div>
+          <div style="font-size:.82rem;line-height:1.5;color:var(--text-muted)">${a.body}</div>
+        </div>
+      `;
+    }
+
+  } catch(e) {
+    console.error('Portal init error:', e);
+    APP.toast('Error loading your data', 'error');
+  }
+}
+
+function renderScoreRing(score) {
+  const arc      = document.getElementById('mb-ring-arc');
+  const valEl    = document.getElementById('mb-score-val');
+  const badgeEl  = document.getElementById('mb-score-badge');
+  const circumf  = 301.6;
+
+  document.getElementById('mb-score-val').textContent = score;
+
+  // Colour by score
+  const colours = { excellent:'#27ae60', good:'#3498db', average:'#B8973A', poor:'#c0392b' };
+  const cls = APP.scoreClass(score);
+  if (arc) {
+    arc.style.stroke = colours[cls] || '#B8973A';
+    setTimeout(() => {
+      arc.style.strokeDashoffset = circumf - (circumf * score / 100);
+    }, 100);
+  }
+
+  if (badgeEl) {
+    const clsMap = { excellent:'badge-green', good:'badge-blue', average:'badge-gold', poor:'badge-red' };
+    badgeEl.innerHTML = `<span class="badge ${clsMap[cls]}">${APP.scoreLabel(score)}</span>`;
+  }
+}
+
+function renderHomeBars() {
+  const u = MEMBER_DATA;
+  // Attendance bar
+  const total   = MEMBER_ATT.length;
+  const present = MEMBER_ATT.filter(r=>r.status==='present').length;
+  const late    = MEMBER_ATT.filter(r=>r.status==='late').length;
+  const attRate = total > 0 ? Math.round(((present+late*0.5)/total)*100) : 100;
+
+  document.getElementById('mb-att-bar').style.width = attRate + '%';
+  document.getElementById('mb-att-pct').textContent  = `${attRate}% (${present+late} of ${total} sessions)`;
+
+  // Performance bar
+  let perfRate = 100, perfLabel = 'No records yet';
+  if (MEMBER_PERF.length > 0) {
+    const avg = MEMBER_PERF.reduce((s,r) => s+(APP.PERF_RATINGS[r.rating]?.score||0),0) / MEMBER_PERF.length;
+    perfRate  = Math.round((avg/4)*100);
+    const latest = APP.PERF_RATINGS[MEMBER_PERF[0].rating];
+    perfLabel = `Latest: ${latest?.label || '—'}`;
+  }
+  document.getElementById('mb-perf-bar').style.width = perfRate + '%';
+  document.getElementById('mb-perf-lbl').textContent  = perfLabel;
+
+  // Finance bar
+  const totalPaid = MEMBER_CONTRIB.filter(c=>c.paid).reduce((s,c)=>s+(c.amount||0),0);
+  const monthlyOwed = MEMBER_CONTRIB.filter(c=>c.type==='monthly').length * APP.MONTHLY_CONTRIBUTION;
+  const finRate = monthlyOwed > 0 ? Math.min(100, Math.round((totalPaid/monthlyOwed)*100)) : 100;
+
+  document.getElementById('mb-fin-bar').style.width = finRate + '%';
+  document.getElementById('mb-fin-lbl').textContent  = `${APP.formatUGX(totalPaid)} paid`;
+}
+
+// ── Attendance tab ──
+function loadMemberAttendance() {
+  // Stats
+  const total   = MEMBER_ATT.length;
+  const present = MEMBER_ATT.filter(r=>r.status==='present').length;
+  const late    = MEMBER_ATT.filter(r=>r.status==='late').length;
+  const absent  = MEMBER_ATT.filter(r=>r.status==='absent').length;
+
+  document.getElementById('mb-att-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+      <div class="stat-value">${total}</div><div class="stat-label">Sessions</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:rgba(39,174,96,.1);color:#27ae60"><i class="fas fa-check"></i></div>
+      <div class="stat-value">${present}</div><div class="stat-label">Present</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:rgba(184,151,58,.1);color:var(--gold)"><i class="fas fa-clock"></i></div>
+      <div class="stat-value">${late}</div><div class="stat-label">Late</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:rgba(192,57,43,.1);color:#c0392b"><i class="fas fa-times"></i></div>
+      <div class="stat-value">${absent}</div><div class="stat-label">Absent</div></div>
+  `;
+
+  if (!MEMBER_ATT.length) {
+    document.getElementById('mb-att-table').innerHTML = '<p class="muted" style="padding:20px;font-size:.82rem">No attendance records yet.</p>';
+    return;
+  }
+
+  document.getElementById('mb-att-table').innerHTML = `
+    <table>
+      <thead><tr><th>Date</th><th>Type</th><th>Status</th><th>Performance</th></tr></thead>
+      <tbody>
+        ${MEMBER_ATT.map(r => {
+          const perf = MEMBER_PERF.find(p => APP.formatDate(p.date) === APP.formatDate(r.date));
+          const statusBadge = { present:'badge-green', late:'badge-gold', absent:'badge-red' };
+          return `
+            <tr>
+              <td>${APP.formatDate(r.date)}</td>
+              <td><span class="badge badge-gray">${r.type||'rehearsal'}</span></td>
+              <td><span class="badge ${statusBadge[r.status]||'badge-gray'}">${r.status}</span></td>
+              <td>${perf ? `<span class="badge ${APP.PERF_RATINGS[perf.rating]?.cls||'badge-gray'}">${APP.PERF_RATINGS[perf.rating]?.label||perf.rating}</span>` : '<span style="color:var(--text-light);font-size:.75rem">—</span>'}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+// ── Contributions tab ──
+function loadMemberContributions() {
+  const totalPaid  = MEMBER_CONTRIB.filter(c=>c.paid).reduce((s,c)=>s+(c.amount||0),0);
+  const monthlyOwed = MEMBER_CONTRIB.filter(c=>c.type==='monthly').length * APP.MONTHLY_CONTRIBUTION;
+  const balance    = totalPaid - monthlyOwed;
+
+  document.getElementById('mb-fin-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-icon"><i class="fas fa-arrow-up"></i></div>
+      <div class="stat-value" style="font-size:1.2rem;color:#27ae60">${APP.formatUGX(totalPaid)}</div>
+      <div class="stat-label">Total Paid</div></div>
+    <div class="stat-card"><div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+      <div class="stat-value" style="font-size:1.2rem">${APP.formatUGX(monthlyOwed)}</div>
+      <div class="stat-label">Monthly Due</div></div>
+    <div class="stat-card"><div class="stat-icon"><i class="fas fa-balance-scale"></i></div>
+      <div class="stat-value" style="font-size:1.2rem;color:${balance>=0?'#27ae60':'#c0392b'}">${APP.formatUGX(Math.abs(balance))}</div>
+      <div class="stat-label">${balance>=0?'In Credit':'Balance Due'}</div></div>
+  `;
+
+  if (!MEMBER_CONTRIB.length) {
+    document.getElementById('mb-contributions-list').innerHTML = '<p class="muted" style="padding:20px;font-size:.82rem">No contribution records yet.</p>';
+    return;
+  }
+
+  document.getElementById('mb-contributions-list').innerHTML = `
+    <table>
+      <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>
+        ${MEMBER_CONTRIB.map(c => `
+          <tr>
+            <td>${APP.formatDate(c.date)}</td>
+            <td><span class="badge badge-gold">${c.type==='monthly'?'Monthly':'Event'}</span></td>
+            <td style="font-family:var(--font-serif)">${APP.formatUGX(c.amount)}</td>
+            <td><span class="badge ${c.paid?'badge-green':'badge-red'}">${c.paid?'Paid':'Pending'}</span></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+// ── Absence tab ──
+async function loadMemberAbsences() {
+  const el = document.getElementById('mb-absence-list');
+  try {
+    const snap = await db.collection('absences')
+      .where('memberId','==', MEMBER_DATA.uid)
+      .orderBy('date','desc').get();
+
+    const items = snap.docs.map(d=>({id:d.id,...d.data()}));
+
+    // Set today's date
+    document.getElementById('abs-date').value = new Date().toISOString().split('T')[0];
+
+    if (!items.length) {
+      el.innerHTML = '<p class="muted" style="padding:20px;font-size:.82rem">No absence notifications submitted.</p>';
+      return;
+    }
+
+    el.innerHTML = `
+      <table>
+        <thead><tr><th>Date</th><th>Type</th><th>Reason</th><th>Submitted</th></tr></thead>
+        <tbody>
+          ${items.map(a => `
+            <tr>
+              <td>${APP.formatDate(a.date)}</td>
+              <td><span class="badge badge-gold">${a.sessionType||'rehearsal'}</span></td>
+              <td style="font-size:.8rem;max-width:200px">${a.reason||'—'}</td>
+              <td style="font-size:.75rem;color:var(--text-muted)">${APP.formatDate(a.submittedAt)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch(e) {
+    el.innerHTML = '<p class="muted" style="padding:20px;font-size:.82rem">Error loading absences.</p>';
+  }
+}
+
+async function submitAbsence() {
+  const date   = document.getElementById('abs-date').value;
+  const type   = document.getElementById('abs-type').value;
+  const reason = document.getElementById('abs-reason').value.trim();
+
+  if (!date || !reason) { APP.toast('Date and reason are required', 'error'); return; }
+
+  try {
+    await db.collection('absences').add({
+      memberId:    MEMBER_DATA.uid,
+      memberName: `${MEMBER_DATA.firstName||''} ${MEMBER_DATA.lastName||''}`.trim(),
+      voice:       MEMBER_DATA.voice || '',
+      date:        firebase.firestore.Timestamp.fromDate(new Date(date)),
+      sessionType: type,
+      reason,
+      submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    APP.toast('Absence notification submitted', 'success');
+    document.getElementById('abs-reason').value = '';
+    loadMemberAbsences();
+  } catch(e) {
+    APP.toast('Error: ' + e.message, 'error');
+  }
+}
+
+// ── Leaderboard ──
+function loadLeaderboard() {
+  renderLeaderboard();
+}
+
+function renderLeaderboard() {
+  const filter  = document.getElementById('lb-voice-filter')?.value || '';
+  const members = ALL_MEMBERS
+    .filter(m => !filter || m.voice === filter)
+    .sort((a,b) => (b.score||0) - (a.score||0));
+
+  const el = document.getElementById('mb-leaderboard-list');
+  if (!el) return;
+
+  if (!members.length) {
+    el.innerHTML = '<p class="muted" style="padding:20px;font-size:.82rem">No members found.</p>';
+    return;
+  }
+
+  el.innerHTML = members.map((m, i) => {
+    const rank   = i + 1;
+    const isMe   = m.id === MEMBER_DATA.uid;
+    const score  = m.score || 0;
+    const sCls   = APP.scoreClass(score);
+    const rankCls = rank===1?'rank-1':rank===2?'rank-2':rank===3?'rank-3':'rank-other';
+    const scoreColours = { excellent:'#27ae60', good:'#3498db', average:'#B8973A', poor:'#c0392b' };
+
+    return `
+      <div class="leaderboard-row ${isMe?'is-me':''}">
+        <div class="leaderboard-rank ${rankCls}">${rank}</div>
+        <div style="width:34px;height:34px;border-radius:50%;background:var(--dark);display:flex;align-items:center;justify-content:center;color:var(--gold-light);font-family:var(--font-serif);font-size:.85rem;flex-shrink:0">
+          ${APP.initials((m.firstName||'')+(m.lastName||''))}
+        </div>
+        <div style="flex:1">
+          <div style="font-weight:500;font-size:.85rem">${m.firstName||''} ${m.lastName||''} ${isMe?'<span style="font-size:.65rem;color:var(--gold);font-weight:700;margin-left:4px">(You)</span>':''}</div>
+          <div style="font-size:.7rem;color:var(--text-muted)">${m.voice||''}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:var(--font-serif);font-size:1.2rem;color:${scoreColours[sCls]||'#B8973A'}">${score}</div>
+          <div style="font-size:.62rem;color:var(--text-light)">/ 100</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Profile tab ──
+function loadMemberProfile() {
+  const u = MEMBER_DATA;
+  document.getElementById('mb-profile-display').innerHTML = `
+    <div style="display:grid;gap:12px">
+      ${[
+        ['Name',    `${u.firstName||''} ${u.lastName||''}`],
+        ['Email',   u.email||'—'],
+        ['Phone',   u.phone||'—'],
+        ['Voice',   u.voice||'—'],
+        ['Role',    APP.ROLES[u.role]||u.role||'—'],
+        ['Joined',  APP.formatDate(u.joinDate)],
+        ['Motto',   u.motto ? `"${u.motto}"` : '—']
+      ].map(([label,val]) => `
+        <div style="display:flex;gap:14px">
+          <div style="font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);font-weight:600;width:80px;flex-shrink:0;padding-top:2px">${label}</div>
+          <div style="font-size:.84rem">${val}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  document.getElementById('mbp-first').value = u.firstName || '';
+  document.getElementById('mbp-last').value  = u.lastName  || '';
+  document.getElementById('mbp-phone').value = u.phone     || '';
+  document.getElementById('mbp-motto').value = u.motto     || '';
+}
+
+function toggleProfileEdit(show) {
+  document.getElementById('mb-profile-edit-card').style.display = show ? 'block' : 'none';
+}
+
+async function saveProfile() {
+  const data = {
+    firstName: document.getElementById('mbp-first').value.trim(),
+    lastName:  document.getElementById('mbp-last').value.trim(),
+    phone:     document.getElementById('mbp-phone').value.trim(),
+    motto:     document.getElementById('mbp-motto').value.trim(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  try {
+    await db.collection('members').doc(MEMBER_DATA.uid).set(data, { merge: true });
+    Object.assign(MEMBER_DATA, data);
+    APP.currentUser = MEMBER_DATA;
+    APP.toast('Profile updated', 'success');
+    toggleProfileEdit(false);
+    loadMemberProfile();
+    document.getElementById('mb-topbar-name').textContent = `${data.firstName} ${data.lastName}`.trim();
+    document.getElementById('mb-welcome-name').innerHTML = `Hello, <em>${data.firstName||'Member'}</em>`;
+  } catch(e) {
+    APP.toast('Error: ' + e.message, 'error');
+  }
+}
+
+async function changePassword() {
+  const current  = document.getElementById('pwd-current').value;
+  const newPwd   = document.getElementById('pwd-new').value;
+  const confirm  = document.getElementById('pwd-confirm').value;
+  const errEl    = document.getElementById('pwd-error');
+
+  errEl.classList.remove('visible');
+
+  if (!current || !newPwd || !confirm) { errEl.textContent='All fields required'; errEl.classList.add('visible'); return; }
+  if (newPwd.length < 6)               { errEl.textContent='Password must be at least 6 characters'; errEl.classList.add('visible'); return; }
+  if (newPwd !== confirm)              { errEl.textContent='Passwords do not match'; errEl.classList.add('visible'); return; }
+
+  try {
+    // Re-authenticate first
+    const user       = auth.currentUser;
+    const credential = firebase.auth.EmailAuthProvider.credential(user.email, current);
+    await user.reauthenticateWithCredential(credential);
+    await user.updatePassword(newPwd);
+
+    APP.toast('Password updated successfully', 'success');
+    document.getElementById('pwd-current').value = '';
+    document.getElementById('pwd-new').value     = '';
+    document.getElementById('pwd-confirm').value = '';
+  } catch(e) {
+    const msgs = {
+      'auth/wrong-password': 'Current password is incorrect.',
+      'auth/weak-password':  'New password is too weak.'
+    };
+    errEl.textContent = msgs[e.code] || e.message;
+    errEl.classList.add('visible');
+  }
+}
+</script>
+</body>
+</html>
