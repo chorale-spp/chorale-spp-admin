@@ -69,6 +69,13 @@
         <i class="fas fa-coins"></i>
         Finances
       </button>
+
+      <div class="nav-section-label">Communication</div>
+
+      <button class="nav-item" data-nav="announcements" onclick="APP.navigate('announcements')">
+        <i class="fas fa-bullhorn"></i>
+        Announcements
+      </button>
     </nav>
 
     <div class="sidebar-footer">
@@ -120,6 +127,9 @@
 
         <!-- Finances -->
         <div class="section-view" id="view-finances"></div>
+
+        <!-- Announcements -->
+        <div class="section-view" id="view-announcements"></div>
 
       </main>
 
@@ -188,6 +198,29 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="form-member-id">
+
+      <!-- UID field — only shown when adding a new member, hidden when editing -->
+      <div class="form-group-sm" id="fm-uid-group">
+        <label style="display:flex;align-items:center;justify-content:space-between">
+          <span><i class="fas fa-key" style="margin-right:5px;color:var(--gold)"></i>Firebase UID *</span>
+          <a href="https://console.firebase.google.com" target="_blank"
+             style="font-size:.65rem;color:var(--gold);display:inline-flex;align-items:center;gap:4px">
+            <i class="fas fa-external-link-alt"></i> Open Firebase Console
+          </a>
+        </label>
+        <input type="text" id="fm-uid" placeholder="Paste the UID from Firebase Console → Authentication">
+        <div style="font-size:.68rem;color:var(--text-muted);margin-top:5px;line-height:1.5">
+          <i class="fas fa-info-circle" style="color:var(--gold);margin-right:3px"></i>
+          Create the user in Firebase Console first, then copy their UID and paste it here.
+          This links their login to their member record.
+        </div>
+        <div id="fm-uid-warning" style="display:none;font-size:.72rem;color:#c0392b;margin-top:5px;display:none">
+          <i class="fas fa-exclamation-triangle"></i> UID is required — without it, this member cannot log in.
+        </div>
+      </div>
+
+      <div class="divider-h" id="fm-uid-divider"></div>
+
       <div class="form-row">
         <div class="form-group-sm">
           <label>First Name *</label>
@@ -516,6 +549,8 @@
 <!-- Scripts -->
 <script src="assets/js/firebase-init.js"></script>
 <script src="assets/js/utils.js"></script>
+<script src="assets/js/roles.js"></script>
+<script src="assets/js/announcements.js"></script>
 <script src="assets/js/sections.js"></script>
 <script>
 
@@ -535,6 +570,23 @@ window.initDashboard = async function() {
 
   // Populate member selects in modals
   APP.populateSelects();
+
+  // Show member portal link in sidebar footer
+  APP.addMemberPortalLink();
+};
+
+// Add member portal link to sidebar
+APP.addMemberPortalLink = function() {
+  const footer = document.querySelector('.sidebar-footer');
+  if (!footer) return;
+  const link = document.createElement('a');
+  link.href = 'member.html';
+  link.target = '_blank';
+  link.style.cssText = 'display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.35);font-size:.75rem;font-weight:500;padding:8px 0;transition:color .2s;margin-bottom:8px;text-decoration:none';
+  link.innerHTML = '<i class="fas fa-external-link-alt" style="font-size:.85rem"></i> Member Portal';
+  link.onmouseover = () => link.style.color = 'var(--gold-light)';
+  link.onmouseout  = () => link.style.color = 'rgba(255,255,255,0.35)';
+  footer.insertBefore(link, footer.firstChild);
 };
 
 // ── Profile ──
