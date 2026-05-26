@@ -10,11 +10,12 @@ window.APP = window.APP || {};
 // All admins can VIEW overview.
 
 APP.PERMISSIONS = {
-  overview:   ['music_director','secretary','treasurer','archivist','maestro','discipline_dir','discipline_vic','voice_resp'],
-  members:    ['music_director','secretary'],
-  attendance: ['music_director','discipline_dir','discipline_vic','voice_resp'],
-  events:     ['music_director','secretary'],
-  finances:   ['music_director','treasurer'],
+  overview:      ['music_director','secretary','treasurer','archivist','maestro','discipline_dir','discipline_vic','voice_resp'],
+  members:       ['music_director','secretary'],
+  attendance:    ['music_director','discipline_dir','discipline_vic','voice_resp'],
+  events:        ['music_director','secretary'],
+  finances:      ['music_director','treasurer'],
+  scores:        ['music_director','archivist'],
   announcements: ['music_director','secretary']
 };
 
@@ -79,7 +80,8 @@ APP.getSectionOwner = function(section) {
     members:    'Secretary / Admin',
     attendance: 'Discipline Director or Voice Responsable',
     events:     'Secretary or Music Director',
-    finances:   'Treasurer'
+    finances:   'Treasurer',
+    scores:     'Archivist or Music Director'
   };
   return owners[section] || 'authorized admin';
 };
