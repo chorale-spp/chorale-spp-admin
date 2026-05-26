@@ -659,8 +659,7 @@ const ADMIN_ROLES_M = [
   'maestro','discipline_dir','discipline_vic','voice_resp'
 ];
 
-window.addEventListener('load', () => {
-  auth.onAuthStateChanged(async (user) => {
+auth.onAuthStateChanged(async (user) => {
     const loading = document.getElementById('app-loading');
 
     if (user) {
@@ -714,7 +713,6 @@ window.addEventListener('load', () => {
       document.getElementById('member-login-screen').style.display = 'block';
       document.getElementById('member-dashboard').style.display    = 'none';
     }
-  });
 });
 
 // ── Sign in / out ──
