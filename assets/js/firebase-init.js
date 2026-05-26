@@ -5,12 +5,12 @@
 // ============================================
 
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAFBeffjoHdNmtnSLPxLftG-rFJK9Rlg5c",
-  authDomain: "chorale-spp.firebaseapp.com",
-  projectId: "chorale-spp",
-  storageBucket: "chorale-spp.firebasestorage.app",
+  apiKey:            "AIzaSyAFBeffjoHdNmtnSLPxLftG-rFJK9Rlg5c",
+  authDomain:        "chorale-spp.firebaseapp.com",
+  projectId:         "chorale-spp",
+  storageBucket:     "chorale-spp.firebasestorage.app",
   messagingSenderId: "509837805978",
-  appId: "1:509837805978:web:36d1adcb3b753c6a2e5223"
+  appId:             "1:509837805978:web:36d1adcb3b753c6a2e5223"
 };
 
 // ── Initialize ──
