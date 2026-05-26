@@ -794,45 +794,78 @@ async function initMemberPortal() {
   const u = MEMBER_DATA;
   const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email;
 
-  // Topbar name
+  // Topbar name & welcome
   document.getElementById('mb-topbar-name').textContent = name;
-
-  // Welcome
-  document.getElementById('mb-welcome-name').innerHTML = `Hello, <em>${u.firstName || 'Member'}</em>`;
+  document.getElementById('mb-welcome-name').innerHTML  = `Hello, <em>${u.firstName || 'Member'}</em>`;
   document.getElementById('mb-welcome-date').textContent = APP.today();
 
-  // Load all member data in parallel
+  // ── Load each data source independently ──
+  // Each one catches its own errors so one failure never blocks the others
+
+  // 1. Member's attendance records
   try {
-    const [attSnap, perfSnap, contSnap, evSnap, annSnap, allMembSnap] = await Promise.all([
-      db.collection('attendance').where('memberId','==',u.uid).orderBy('date','desc').get(),
-      db.collection('performance').where('memberId','==',u.uid).orderBy('date','desc').get(),
-      db.collection('contributions').where('memberId','==',u.uid).orderBy('date','desc').get(),
-      db.collection('events').where('date','>=', firebase.firestore.Timestamp.fromDate(new Date())).orderBy('date').limit(5).get(),
-      db.collection('announcements').orderBy('createdAt','desc').limit(1).get(),
-      db.collection('members').orderBy('score','desc').get()
-    ]);
+    const snap = await db.collection('attendance')
+      .where('memberId','==', u.uid)
+      .orderBy('date','desc').get();
+    MEMBER_ATT = snap.docs.map(d => ({id:d.id,...d.data()}));
+  } catch(e) {
+    console.warn('Attendance load:', e.message);
+    MEMBER_ATT = [];
+  }
 
-    MEMBER_ATT     = attSnap.docs.map(d  => ({id:d.id,...d.data()}));
-    MEMBER_PERF    = perfSnap.docs.map(d => ({id:d.id,...d.data()}));
-    MEMBER_CONTRIB = contSnap.docs.map(d => ({id:d.id,...d.data()}));
-    ALL_MEMBERS    = allMembSnap.docs.map(d => ({id:d.id,...d.data()}));
+  // 2. Member's performance records
+  try {
+    const snap = await db.collection('performance')
+      .where('memberId','==', u.uid)
+      .orderBy('date','desc').get();
+    MEMBER_PERF = snap.docs.map(d => ({id:d.id,...d.data()}));
+  } catch(e) {
+    console.warn('Performance load:', e.message);
+    MEMBER_PERF = [];
+  }
 
-    // Score
-    const score = APP.calcMemberScore(u, {
-      attendanceRecords:    MEMBER_ATT,
-      performanceRecords:   MEMBER_PERF,
-      contributionRecords:  MEMBER_CONTRIB
-    });
+  // 3. Member's contributions
+  try {
+    const snap = await db.collection('contributions')
+      .where('memberId','==', u.uid)
+      .orderBy('date','desc').get();
+    MEMBER_CONTRIB = snap.docs.map(d => ({id:d.id,...d.data()}));
+  } catch(e) {
+    console.warn('Contributions load:', e.message);
+    MEMBER_CONTRIB = [];
+  }
 
-    renderScoreRing(score);
-    renderHomeBars();
+  // 4. All members (for leaderboard)
+  try {
+    const snap = await db.collection('members').get();
+    ALL_MEMBERS = snap.docs
+      .map(d => ({id:d.id,...d.data()}))
+      .sort((a,b) => (b.score||0) - (a.score||0));
+  } catch(e) {
+    console.warn('Members load:', e.message);
+    ALL_MEMBERS = [];
+  }
 
-    // Upcoming events
+  // Render score ring and bars with whatever we have
+  const score = APP.calcMemberScore(u, {
+    attendanceRecords:   MEMBER_ATT,
+    performanceRecords:  MEMBER_PERF,
+    contributionRecords: MEMBER_CONTRIB
+  });
+  renderScoreRing(score);
+  renderHomeBars();
+
+  // 5. Upcoming events
+  try {
+    const snap = await db.collection('events')
+      .where('date','>=', firebase.firestore.Timestamp.fromDate(new Date()))
+      .orderBy('date').limit(5).get();
     const evEl = document.getElementById('mb-upcoming-events');
-    if (evSnap.empty) {
+    if (!evEl) return;
+    if (snap.empty) {
       evEl.innerHTML = '<p class="muted" style="font-size:.82rem">No upcoming events.</p>';
     } else {
-      evEl.innerHTML = evSnap.docs.map(d => {
+      evEl.innerHTML = snap.docs.map(d => {
         const e = d.data();
         return `
           <div class="event-tag" style="margin-bottom:8px">
@@ -845,29 +878,54 @@ async function initMemberPortal() {
         `;
       }).join('');
     }
+  } catch(e) {
+    console.warn('Events load:', e.message);
+    const evEl = document.getElementById('mb-upcoming-events');
+    if (evEl) evEl.innerHTML = '<p class="muted" style="font-size:.82rem">Could not load events.</p>';
+  }
 
-    // Latest announcement
+  // 6. Latest announcement — fetch without orderBy to avoid index requirement
+  //    then sort client-side
+  try {
+    const snap = await db.collection('announcements').limit(20).get();
     const annEl = document.getElementById('mb-latest-ann');
-    if (annSnap.empty) {
+    if (!annEl) return;
+
+    if (snap.empty) {
       annEl.innerHTML = '<p class="muted" style="font-size:.82rem">No announcements yet.</p>';
     } else {
-      const a = annSnap.docs[0].data();
-      const typeColors = { urgent:'badge-red', rehearsal:'badge-blue', event:'badge-gold', general:'badge-gray' };
+      // Sort client-side by createdAt descending
+      const all = snap.docs
+        .map(d => ({id:d.id,...d.data()}))
+        .sort((a,b) => {
+          const ta = a.createdAt?.seconds || 0;
+          const tb = b.createdAt?.seconds || 0;
+          return tb - ta;
+        });
+
+      const a = all[0];
+      const typeColors = {
+        urgent:'badge-red', rehearsal:'badge-blue',
+        event:'badge-gold', general:'badge-gray'
+      };
       annEl.innerHTML = `
         <div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <span class="badge ${typeColors[a.type]||'badge-gray'}">${a.type}</span>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span class="badge ${typeColors[a.type]||'badge-gray'}">${a.type||'general'}</span>
             <span style="font-size:.7rem;color:var(--text-muted)">${APP.formatDate(a.createdAt)}</span>
           </div>
-          <div style="font-weight:600;font-size:.9rem;margin-bottom:4px">${a.title}</div>
-          <div style="font-size:.82rem;line-height:1.5;color:var(--text-muted)">${a.body}</div>
+          <div style="font-weight:600;font-size:.9rem;margin-bottom:6px">${a.title}</div>
+          <div style="font-size:.82rem;line-height:1.6;color:var(--text-main)">${a.body}</div>
+          <div style="font-size:.72rem;color:var(--text-light);margin-top:8px">
+            <i class="fas fa-user" style="margin-right:3px"></i>${a.authorName||'Admin'}
+          </div>
         </div>
       `;
     }
-
   } catch(e) {
-    console.error('Portal init error:', e);
-    APP.toast('Error loading your data', 'error');
+    console.warn('Announcements load:', e.message);
+    const annEl = document.getElementById('mb-latest-ann');
+    if (annEl) annEl.innerHTML = '<p class="muted" style="font-size:.82rem">Could not load announcements.</p>';
   }
 }
 
@@ -1015,11 +1073,13 @@ function loadMemberContributions() {
 async function loadMemberAbsences() {
   const el = document.getElementById('mb-absence-list');
   try {
+    // Fetch without orderBy to avoid index requirement, sort client-side
     const snap = await db.collection('absences')
-      .where('memberId','==', MEMBER_DATA.uid)
-      .orderBy('date','desc').get();
+      .where('memberId','==', MEMBER_DATA.uid).get();
 
-    const items = snap.docs.map(d=>({id:d.id,...d.data()}));
+    const items = snap.docs
+      .map(d=>({id:d.id,...d.data()}))
+      .sort((a,b) => (b.date?.seconds||0) - (a.date?.seconds||0));
 
     // Set today's date
     document.getElementById('abs-date').value = new Date().toISOString().split('T')[0];
