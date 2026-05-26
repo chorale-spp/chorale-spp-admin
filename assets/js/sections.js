@@ -1398,6 +1398,11 @@ APP.navigate = function(section) {
     return;
   }
 
+  if (section === 'scores') {
+    APP.loadScores();
+    return;
+  }
+
   // Apply edit lock after section loads (slight delay for DOM)
   setTimeout(() => APP.applyEditLock(section), 400);
 };
