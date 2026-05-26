@@ -33,80 +33,68 @@ const IS_MEMBER_PORTAL = window.location.pathname.includes('member');
 const IS_LOGIN_PAGE    = !IS_ADMIN_PORTAL && !IS_MEMBER_PORTAL;
 
 // ── Auth state handler ──
-auth.onAuthStateChanged(async (user) => {
-  const loadEl = document.getElementById('app-loading');
+// Member portal manages its own auth entirely — skip registration here
+if (!IS_MEMBER_PORTAL) {
+  auth.onAuthStateChanged(async (user) => {
+    const loadEl = document.getElementById('app-loading');
 
-  if (user) {
-    // Fetch Firestore profile using uid as document ID
-    let profile = null;
-    try {
-      const snap = await db.collection('members').doc(user.uid).get();
-      if (snap.exists) {
-        profile = { uid: user.uid, email: user.email, ...snap.data() };
+    if (user) {
+      // Fetch Firestore profile using uid as document ID
+      let profile = null;
+      try {
+        const snap = await db.collection('members').doc(user.uid).get();
+        if (snap.exists) {
+          profile = { uid: user.uid, email: user.email, ...snap.data() };
+        }
+      } catch(e) {
+        console.error('Profile fetch error:', e);
       }
-    } catch(e) {
-      console.error('Profile fetch error:', e);
-    }
 
-    const role    = profile?.role || '';
-    const isAdmin = ADMIN_ROLES.includes(role);
+      const role    = profile?.role || '';
+      const isAdmin = ADMIN_ROLES.includes(role);
 
-    // ── Admin login page ──
-    if (IS_LOGIN_PAGE) {
-      if (!profile) {
-        // UID not linked to any member record
-        await auth.signOut();
-        showLoginError('Your account is not linked to a member record. Contact the Secretary.');
-        hideLoading(loadEl);
+      // ── Admin login page ──
+      if (IS_LOGIN_PAGE) {
+        if (!profile) {
+          await auth.signOut();
+          showLoginError('Your account is not linked to a member record. Contact the Secretary.');
+          hideLoading(loadEl);
+          return;
+        }
+        if (!isAdmin) {
+          await auth.signOut();
+          showLoginError('You do not have admin access. Please use the Member Portal.');
+          hideLoading(loadEl);
+          return;
+        }
+        window.APP.currentUser = profile;
+        window.location.href = 'dashboard.html';
         return;
       }
-      if (!isAdmin) {
-        // Member trying to use admin portal
-        await auth.signOut();
-        showLoginError('You do not have admin access. Please use the Member Portal.');
+
+      // ── Admin dashboard ──
+      if (IS_ADMIN_PORTAL) {
+        if (!profile || !isAdmin) {
+          await auth.signOut();
+          window.location.href = 'index.html';
+          return;
+        }
+        window.APP.currentUser = profile;
         hideLoading(loadEl);
+        if (typeof window.initDashboard === 'function') window.initDashboard();
         return;
       }
-      // Valid admin — go to dashboard
-      window.APP.currentUser = profile;
-      window.location.href = 'dashboard.html';
-      return;
-    }
 
-    // ── Admin dashboard ──
-    if (IS_ADMIN_PORTAL) {
-      if (!profile || !isAdmin) {
-        await auth.signOut();
+    } else {
+      // Not logged in
+      if (IS_ADMIN_PORTAL) {
         window.location.href = 'index.html';
         return;
       }
-      window.APP.currentUser = profile;
       hideLoading(loadEl);
-      if (typeof window.initDashboard === 'function') window.initDashboard();
-      return;
     }
-
-    // ── Member portal ──
-    if (IS_MEMBER_PORTAL) {
-      // Member portal handles everything itself — never interfere
-      hideLoading(loadEl);
-      return;
-    }
-
-  } else {
-    // Not logged in
-    if (IS_ADMIN_PORTAL) {
-      window.location.href = 'index.html';
-      return;
-    }
-    if (IS_MEMBER_PORTAL) {
-      // Member portal handles its own signed-out state
-      return;
-    }
-    // Login page — just hide loading
-    hideLoading(loadEl);
-  }
-});
+  });
+}
 
 function hideLoading(el) {
   if (!el) return;
