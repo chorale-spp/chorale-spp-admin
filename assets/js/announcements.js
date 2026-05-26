@@ -11,12 +11,17 @@ APP.loadAnnouncements = async function(containerId, canPost) {
   if (!el) return;
 
   try {
-    const snap = await db.collection('announcements')
-      .orderBy('createdAt', 'desc')
-      .limit(20)
-      .get();
+    // Fetch without orderBy to avoid requiring a Firestore index
+    // Sort client-side instead
+    const snap = await db.collection('announcements').limit(50).get();
 
-    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const items = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => {
+        const ta = a.createdAt?.seconds || 0;
+        const tb = b.createdAt?.seconds || 0;
+        return tb - ta;
+      });
 
     let html = '';
 
