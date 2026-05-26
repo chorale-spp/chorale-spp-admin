@@ -335,6 +335,9 @@
       <button class="member-tab" data-tab="leaderboard" onclick="memberNav('leaderboard')">
         <i class="fas fa-trophy"></i> Leaderboard
       </button>
+      <button class="member-tab" data-tab="scores" onclick="memberNav('scores')">
+        <i class="fas fa-music"></i> Scores
+      </button>
       <button class="member-tab" data-tab="noticeboard" onclick="memberNav('noticeboard')">
         <i class="fas fa-bullhorn"></i> Notice Board
         <span id="mb-notif-dot" style="display:none;width:7px;height:7px;border-radius:50%;background:#c0392b;margin-left:2px"></span>
@@ -528,6 +531,17 @@
         </div>
       </div>
 
+      <!-- SCORES -->
+      <div id="mb-view-scores" class="section-view">
+        <div class="page-header">
+          <div class="eyebrow">Library</div>
+          <h2>Music <em>Scores</em></h2>
+          <div class="divider"></div>
+          <div class="subtitle">All scores organised by the order of the Mass</div>
+        </div>
+        <div id="mb-scores-container"></div>
+      </div>
+
       <!-- NOTICE BOARD -->
       <div id="mb-view-noticeboard" class="section-view">
         <div class="page-header">
@@ -624,6 +638,7 @@
 <script src="assets/js/firebase-init.js"></script>
 <script src="assets/js/utils.js"></script>
 <script src="assets/js/announcements.js"></script>
+<script src="assets/js/scores.js"></script>
 
 <script>
 // ============================================
@@ -766,6 +781,7 @@ function memberNav(tab) {
     contributions: loadMemberContributions,
     absence:       loadMemberAbsences,
     leaderboard:   loadLeaderboard,
+    scores:        () => APP.loadMemberScores('mb-scores-container'),
     noticeboard:   () => APP.loadAnnouncements('announcements-container', false),
     profile:       loadMemberProfile
   };
