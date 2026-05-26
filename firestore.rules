@@ -2,78 +2,66 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Helpers ──
-    function isAuth()    { return request.auth != null; }
-    function uid()       { return request.auth.uid; }
-    function myDoc()     { return get(/databases/$(database)/documents/members/$(uid())).data; }
-    function myRole()    { return myDoc().role; }
-    function isDirector(){ return myRole() == 'music_director'; }
-    function isSecretary(){ return myRole() == 'secretary'; }
-    function isTreasurer(){ return myRole() == 'treasurer'; }
-    function isDiscipline(){ return myRole() in ['discipline_dir','discipline_vic']; }
-    function isVoiceResp(){ return myRole() == 'voice_resp'; }
-    function isMaestro() { return myRole() == 'maestro'; }
-    function isAdmin()   { return myRole() in ['music_director','secretary','treasurer','archivist','maestro','discipline_dir','discipline_vic','voice_resp']; }
+    function isAuth()        { return request.auth != null; }
+    function uid()           { return request.auth.uid; }
+    function myRole()        { return get(/databases/$(database)/documents/members/$(uid())).data.role; }
+    function isDirector()    { return myRole() == 'music_director'; }
+    function isSecretary()   { return myRole() == 'secretary'; }
+    function isTreasurer()   { return myRole() == 'treasurer'; }
+    function isArchivist()   { return myRole() == 'archivist'; }
+    function isDiscipline()  { return myRole() in ['discipline_dir','discipline_vic']; }
+    function isVoiceResp()   { return myRole() == 'voice_resp'; }
+    function isMaestro()     { return myRole() == 'maestro'; }
+    function isAdmin()       { return myRole() in ['music_director','secretary','treasurer','archivist','maestro','discipline_dir','discipline_vic','voice_resp']; }
 
-    // ── Members collection ──
-    // All authenticated users can read (needed for leaderboard + member portal)
-    // Only secretary and music director can create/delete
-    // Members can update their own doc (profile edits)
     match /members/{memberId} {
       allow read: if isAuth();
       allow create, delete: if isAuth() && (isDirector() || isSecretary());
       allow update: if isAuth() && (isDirector() || isSecretary() || uid() == memberId);
     }
 
-    // ── Attendance ──
-    // Read: all authenticated; Write: discipline directors, voice responsables, director
     match /attendance/{docId} {
       allow read: if isAuth();
       allow write: if isAuth() && (isDirector() || isDiscipline() || isVoiceResp());
     }
 
-    // ── Performance ──
-    // Same as attendance
     match /performance/{docId} {
       allow read: if isAuth();
       allow write: if isAuth() && (isDirector() || isDiscipline() || isVoiceResp() || isMaestro());
     }
 
-    // ── Contributions ──
-    // Read: authenticated; Write: treasurer and director only
     match /contributions/{docId} {
       allow read: if isAuth();
       allow write: if isAuth() && (isDirector() || isTreasurer());
     }
 
-    // ── Transactions ──
     match /transactions/{docId} {
       allow read: if isAuth();
       allow write: if isAuth() && (isDirector() || isTreasurer());
     }
 
-    // ── Events ──
     match /events/{eventId} {
       allow read: if isAuth();
       allow write: if isAuth() && (isDirector() || isSecretary());
     }
 
-    // ── Announcements ──
-    // Read: all authenticated (members too); Write: director and secretary
+    // Scores metadata only — actual PDFs live in the GitHub repo
+    match /scores/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth() && (isDirector() || isArchivist());
+    }
+
     match /announcements/{docId} {
       allow read: if isAuth();
       allow write: if isAuth() && (isDirector() || isSecretary());
     }
 
-    // ── Absences ──
-    // Members can create their own; admins can read all
     match /absences/{docId} {
       allow read: if isAuth() && (isAdmin() || resource.data.memberId == uid());
       allow create: if isAuth() && request.resource.data.memberId == uid();
       allow update, delete: if isAuth() && isAdmin();
     }
 
-    // ── Settings ──
     match /settings/{docId} {
       allow read, write: if isAuth() && (isDirector() || isSecretary());
     }
