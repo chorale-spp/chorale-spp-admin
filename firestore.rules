@@ -65,5 +65,21 @@ service cloud.firestore {
     match /settings/{docId} {
       allow read, write: if isAuth() && (isDirector() || isSecretary());
     }
+
+    // ── Notifications ──
+    // Each user can only read/delete their own notifications
+    // Any authenticated user can create (for sending to others)
+    match /notifications/{docId} {
+      allow read, delete: if isAuth() && (resource.data.uid == uid() || isAdmin());
+      allow create: if isAuth();
+      allow update: if isAuth() && resource.data.uid == uid();
+    }
+
+    // ── Push subscriptions ──
+    // Each user manages their own subscription
+    match /push_subscriptions/{userId} {
+      allow read:  if isAuth() && (userId == uid() || isAdmin());
+      allow write: if isAuth() && userId == uid();
+    }
   }
 }
