@@ -10,7 +10,7 @@ window.APP = window.APP || {};
 // Generate your own at: https://vapidkeys.com
 // Or run: npx web-push generate-vapid-keys
 // Paste the PUBLIC key below
-APP.VAPID_PUBLIC_KEY = 'YOUR_VAPID_PUBLIC_KEY';
+APP.VAPID_PUBLIC_KEY = 'BEE8oo2I1D0IKJ-BiI0aa84wIw2yH-qm3CXxRyOTDBWp1n1qLrgxPRVyDrqH34n5GgS5Q7Xe5aP4yLd_zqL5Tgo';
 
 // ── Convert VAPID key to Uint8Array ──
 function urlBase64ToUint8Array(base64String) {
