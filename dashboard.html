@@ -83,6 +83,12 @@
         <i class="fas fa-bullhorn"></i>
         Announcements
       </button>
+
+      <button class="nav-item" data-nav="notifications" onclick="APP.navigate('notifications')" style="position:relative">
+        <i class="fas fa-bell"></i>
+        Notifications
+        <span id="notif-badge" style="display:none;position:absolute;right:16px;top:50%;transform:translateY(-50%);min-width:18px;height:18px;border-radius:9px;background:#c0392b;color:white;font-size:.6rem;font-weight:700;align-items:center;justify-content:center;padding:0 4px"></span>
+      </button>
     </nav>
 
     <div class="sidebar-footer">
@@ -140,6 +146,9 @@
 
         <!-- Announcements -->
         <div class="section-view" id="view-announcements"></div>
+
+        <!-- Notifications -->
+        <div class="section-view" id="view-notifications"></div>
 
       </main>
 
@@ -562,6 +571,7 @@
 <script src="assets/js/roles.js"></script>
 <script src="assets/js/announcements.js"></script>
 <script src="assets/js/scores.js"></script>
+<script src="assets/js/notifications.js"></script>
 <script src="assets/js/sections.js"></script>
 <script>
 
@@ -581,6 +591,11 @@ window.initDashboard = async function() {
 
   // Populate member selects in modals
   APP.populateSelects();
+
+  // Start notification polling + register service worker
+  APP.registerServiceWorker();
+  APP.startNotifPolling();
+  APP.checkPushStatus();
 
   // Show member portal link in sidebar footer
   APP.addMemberPortalLink();
