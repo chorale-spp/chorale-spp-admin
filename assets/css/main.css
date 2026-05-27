@@ -37,7 +37,13 @@
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { font-size: 16px; scroll-behavior: smooth; }
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  /* Prevent horizontal scroll on mobile */
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+}
 
 body {
   font-family: var(--font-sans);
@@ -46,6 +52,12 @@ body {
   background: var(--cream-light);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  /* Prevent horizontal scroll and rubber-band side effect */
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  /* Smooth momentum scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 a { text-decoration: none; color: inherit; }
@@ -320,7 +332,15 @@ h1, h2, h3, h4, h5 { font-family: var(--font-serif); font-weight: 400; line-heig
   display: flex;
   height: 100vh;
   overflow: hidden;
+  overflow-x: hidden;
   background: var(--cream-light);
+  max-width: 100vw;
+}
+
+/* Prevent any child from causing horizontal bleed */
+.mb-layout {
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 /* ── Left Sidebar ── */
@@ -333,7 +353,7 @@ h1, h2, h3, h4, h5 { font-family: var(--font-serif); font-weight: 400; line-heig
   overflow-x: hidden;
   flex-shrink: 0;
   z-index: 100;
-  transition: transform 0.3s ease, width 0.3s ease;
+  transition: transform 0.3s ease;
 }
 
 .sidebar-header {
@@ -537,7 +557,9 @@ h1, h2, h3, h4, h5 { font-family: var(--font-serif); font-weight: 400; line-heig
 .page-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 28px;
+  min-width: 0;
 }
 
 /* ── Right Panel ── */
