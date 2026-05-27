@@ -201,6 +201,10 @@
           <span id="mb-notif-dot" style="display:none;width:7px;height:7px;border-radius:50%;background:#c0392b;margin-left:4px;flex-shrink:0"></span>
         </button>
         <div class="nav-section-label">Account</div>
+        <button class="nav-item" data-tab="notifications" onclick="memberNav('notifications')" style="position:relative">
+          <i class="fas fa-bell"></i> Notifications
+          <span id="mb-notif-badge" style="display:none;position:absolute;right:16px;top:50%;transform:translateY(-50%);min-width:18px;height:18px;border-radius:9px;background:#c0392b;color:white;font-size:.6rem;font-weight:700;align-items:center;justify-content:center;padding:0 4px"></span>
+        </button>
         <button class="nav-item" data-tab="profile" onclick="memberNav('profile')">
           <i class="fas fa-user"></i> My Profile
         </button>
@@ -449,6 +453,38 @@
         </div>
       </div>
 
+      <!-- NOTIFICATIONS -->
+      <div id="mb-view-notifications" class="section-view">
+        <div class="page-header">
+          <div class="eyebrow">Inbox</div>
+          <h2>My <em>Notifications</em></h2>
+          <div class="divider"></div>
+        </div>
+
+        <!-- Push permission card -->
+        <div class="card mb-28">
+          <div class="card-body" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <div style="width:44px;height:44px;border-radius:50%;background:rgba(184,151,58,0.1);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:1.2rem;flex-shrink:0">
+              <i class="fas fa-bell"></i>
+            </div>
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:.88rem;margin-bottom:3px">Browser Push Notifications</div>
+              <div style="font-size:.78rem;color:var(--text-muted)" id="mb-notif-status-text">
+                Enable to receive alerts even when the portal is closed.
+              </div>
+            </div>
+            <button class="btn-primary" style="width:auto;padding:9px 18px" id="mb-notif-btn" onclick="APP.requestPushPermission();updatePushUI()">
+              <i class="fas fa-bell"></i> Enable
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>All Notifications</h3></div>
+          <div class="card-body" id="mb-notifications-container"></div>
+        </div>
+      </div>
+
       <!-- PROFILE -->
       <div id="mb-view-profile" class="section-view">
         <div class="page-header">
@@ -584,6 +620,7 @@
 <script src="assets/js/utils.js"></script>
 <script src="assets/js/announcements.js"></script>
 <script src="assets/js/scores.js"></script>
+<script src="assets/js/notifications.js"></script>
 
 <script>
 // ============================================
@@ -659,6 +696,25 @@ auth.onAuthStateChanged(async (user) => {
       document.getElementById('member-dashboard').style.display    = 'none';
     }
 });
+
+// ── Push UI update ──
+function updatePushUI() {
+  const granted = Notification.permission === 'granted';
+  const btnEl   = document.getElementById('mb-notif-btn');
+  const txtEl   = document.getElementById('mb-notif-status-text');
+  if (btnEl) {
+    btnEl.innerHTML = granted
+      ? '<i class="fas fa-check"></i> Enabled'
+      : '<i class="fas fa-bell"></i> Enable';
+    btnEl.disabled = granted;
+    btnEl.style.opacity = granted ? '0.6' : '1';
+  }
+  if (txtEl) {
+    txtEl.textContent = granted
+      ? 'Active — you will receive alerts even when the portal is closed.'
+      : 'Enable to receive alerts even when the portal is closed.';
+  }
+}
 
 // ── Sign in / out ──
 async function memberSignIn() {
@@ -831,6 +887,7 @@ const MB_TITLES = {
   leaderboard:   'Leaderboard',
   scores:        'Music Scores',
   noticeboard:   'Notice Board',
+  notifications: 'Notifications',
   profile:       'My Profile'
 };
 
@@ -854,6 +911,7 @@ function memberNav(tab) {
     leaderboard:   loadLeaderboard,
     scores:        () => APP.loadMemberScores('mb-scores-container'),
     noticeboard:   () => APP.loadAnnouncements('announcements-container', false),
+    notifications: () => APP.loadNotifications('mb-notifications-container', false),
     profile:       loadMemberProfile
   };
 
@@ -963,6 +1021,12 @@ async function initMemberPortal() {
   renderHomeBars();
   renderRightPanel(score);
   loadRightPanelData();
+
+  // Start notification polling + service worker
+  APP.registerServiceWorker();
+  APP.startNotifPolling();
+  APP.checkPushStatus();
+  updatePushUI();
 
   // 5. Upcoming events
   try {
@@ -1239,6 +1303,18 @@ async function submitAbsence() {
     APP.toast('Absence notification submitted', 'success');
     document.getElementById('abs-reason').value = '';
     loadMemberAbsences();
+
+    // Notify all admins about this absence submission
+    try {
+      const memberName = `${MEMBER_DATA.firstName||''} ${MEMBER_DATA.lastName||''}`.trim();
+      await APP.createNotification({
+        type:  'absence',
+        title: `Absence: ${memberName}`,
+        body:  `${memberName} (${MEMBER_DATA.voice||'—'}) submitted an absence for ${document.getElementById('abs-type').value} on ${document.getElementById('abs-date').value}. Reason: ${reason.substring(0,80)}`,
+        targetAdminsOnly: true,
+        url:   'dashboard.html'
+      });
+    } catch(e) { console.warn('Absence notification failed:', e.message); }
   } catch(e) {
     APP.toast('Error: ' + e.message, 'error');
   }
