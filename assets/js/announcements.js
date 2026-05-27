@@ -117,6 +117,17 @@ APP.postAnnouncement = async function() {
       APP.loadAnnouncements('announcements-container', APP.canEdit('announcements'));
     }});
 
+    // Send notification to ALL members and admins
+    try {
+      await APP.createNotification({
+        type:  'announcement',
+        title: title,
+        body:  body.substring(0, 120) + (body.length > 120 ? '…' : ''),
+        targetAdminsOnly: false,
+        url:   'member.html'
+      });
+    } catch(e) { console.warn('Notification send failed:', e.message); }
+
     document.getElementById('ann-title').value = '';
     document.getElementById('ann-body').value  = '';
     APP.loadAnnouncements('announcements-container', APP.canEdit('announcements'));
