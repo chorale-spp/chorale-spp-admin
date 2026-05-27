@@ -16,239 +16,73 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 
   <style>
-    /* ── Member portal specific overrides ── */
-    .member-layout {
-      min-height: 100vh;
-      background: var(--cream-light);
-    }
-
-    /* Member topbar */
-    .member-topbar {
-      background: var(--dark);
-      height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    .member-topbar-brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .member-topbar-brand img {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-    }
-
-    .member-topbar-brand span {
-      font-family: var(--font-serif);
-      font-size: 1rem;
-      color: white;
-    }
-
-    .member-topbar-brand span em {
-      color: var(--gold-light);
-      font-style: italic;
-    }
-
-    .member-topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .member-nav-tabs {
-      display: flex;
-      gap: 4px;
-      background: white;
-      border-bottom: 1px solid var(--border);
-      padding: 0 24px;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .member-tab {
-      padding: 14px 18px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      border-bottom: 2px solid transparent;
-      white-space: nowrap;
-      background: none;
-      border-left: none;
-      border-right: none;
-      border-top: none;
-      cursor: pointer;
-      transition: color 0.2s, border-color 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-    }
-
-    .member-tab:hover { color: var(--gold); }
-
-    .member-tab.active {
-      color: var(--gold);
-      border-bottom-color: var(--gold);
-    }
-
-    .member-page { padding: 28px 24px; max-width: 900px; margin: 0 auto; }
-
-    /* Score ring */
+    /* ── Score ring ── */
     .score-ring-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
     }
-
     .score-ring {
-      width: 110px;
-      height: 110px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      position: relative;
+      width: 110px; height: 110px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; position: relative;
     }
-
-    .score-ring svg {
-      position: absolute;
-      top: 0; left: 0;
-      transform: rotate(-90deg);
-    }
-
+    .score-ring svg { position: absolute; top:0; left:0; transform: rotate(-90deg); }
     .score-ring-value {
-      font-family: var(--font-serif);
-      font-size: 2rem;
-      font-weight: 400;
-      position: relative;
-      z-index: 1;
-      line-height: 1;
+      font-family: var(--font-serif); font-size: 2rem; font-weight: 400;
+      position: relative; z-index: 1; line-height: 1;
     }
-
     .score-ring-label {
-      font-size: 0.6rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      position: relative;
-      z-index: 1;
+      font-size: .6rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--text-muted); position: relative; z-index: 1;
     }
 
-    /* Absence form */
+    /* ── Absence ── */
     .absence-card {
-      background: white;
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--border);
-      padding: 20px;
-      margin-bottom: 16px;
+      background: white; border-radius: var(--radius-lg);
+      border: 1px solid var(--border); padding: 20px; margin-bottom: 16px;
     }
 
-    /* Leaderboard */
+    /* ── Leaderboard ── */
     .leaderboard-row {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 12px 16px;
-      border-bottom: 1px solid rgba(0,0,0,0.04);
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 16px; border-bottom: 1px solid rgba(0,0,0,0.04);
       transition: background 0.15s;
     }
-
     .leaderboard-row:hover { background: rgba(184,151,58,0.04); }
-
     .leaderboard-rank {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.78rem;
-      font-weight: 700;
-      flex-shrink: 0;
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .78rem; font-weight: 700; flex-shrink: 0;
     }
-
-    .rank-1 { background: #FFD700; color: #7a6000; }
-    .rank-2 { background: #C0C0C0; color: #555; }
-    .rank-3 { background: #CD7F32; color: #5a3010; }
+    .rank-1  { background: #FFD700; color: #7a6000; }
+    .rank-2  { background: #C0C0C0; color: #555; }
+    .rank-3  { background: #CD7F32; color: #5a3010; }
     .rank-other { background: var(--cream); color: var(--text-muted); }
-
     .leaderboard-row.is-me {
-      background: rgba(184,151,58,0.08);
-      border-left: 3px solid var(--gold);
+      background: rgba(184,151,58,0.08); border-left: 3px solid var(--gold);
     }
 
-    /* Login screen for members */
-    .member-login {
-      min-height: 100vh;
-      background: var(--dark);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      position: relative;
-      overflow: hidden;
-    }
+    /* ── Login page — same split layout as admin ── */
+    .login-page { min-height:100vh; display:grid; grid-template-columns:1fr 1fr; position:relative; }
+    .login-hero { position:relative; overflow:hidden; background:var(--dark); }
+    .login-hero-img { width:100%; height:100%; object-fit:cover; opacity:.55; }
+    .login-hero-overlay { position:absolute; inset:0; background:linear-gradient(135deg,rgba(26,26,26,.6) 0%,rgba(184,151,58,.15) 100%); }
+    .login-hero-content { position:absolute; bottom:48px; left:48px; right:48px; color:white; }
+    .login-hero-content .eyebrow { font-size:.65rem; letter-spacing:.2em; text-transform:uppercase; color:var(--gold-light); margin-bottom:12px; font-weight:600; }
+    .login-hero-content h1 { font-family:var(--font-serif); font-size:2.8rem; font-weight:300; color:white; line-height:1.15; }
+    .login-hero-content h1 em { color:var(--gold-light); font-style:italic; }
+    .login-panel { background:var(--cream-light); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:48px; position:relative; }
+    @media(max-width:640px) { .login-page { grid-template-columns:1fr; } .login-hero { display:none; } }
 
-    .member-login::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: url('assets/img/hero-login.jpg') center/cover no-repeat;
-      opacity: 0.15;
-    }
+    /* ── Member dashboard layout — identical to admin ── */
+    .mb-layout { display:flex; height:100vh; overflow:hidden; background:var(--cream-light); }
 
-    .member-login-box {
-      background: white;
-      border-radius: var(--radius-lg);
-      padding: 40px;
-      width: 100%;
-      max-width: 400px;
-      position: relative;
-      z-index: 1;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-    }
-
-    .member-login-logo {
-      text-align: center;
-      margin-bottom: 28px;
-    }
-
-    .member-login-logo img {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      margin: 0 auto 12px;
-    }
-
-    .member-login-logo h2 {
-      font-family: var(--font-serif);
-      font-size: 1.6rem;
-    }
-
-    .member-login-logo h2 em { color: var(--gold); font-style: italic; }
-
-    .member-login-logo p {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
-
-    @media (max-width: 640px) {
-      .member-page { padding: 18px 16px; }
-      .member-nav-tabs { padding: 0 12px; }
-      .member-tab { padding: 12px 12px; font-size: .68rem; }
+    /* Right panel member profile card */
+    .mb-voice-badge {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:3px 12px; border-radius:20px;
+      background:rgba(184,151,58,0.12); color:var(--gold-dim);
+      font-size:.68rem; font-weight:600; letter-spacing:.08em;
+      text-transform:uppercase; margin-bottom:10px;
     }
   </style>
 </head>
@@ -262,39 +96,62 @@
 
 <!-- ═══════════════ MEMBER LOGIN ═══════════════ -->
 <div id="member-login-screen" style="display:none">
-  <div class="member-login">
-    <div class="member-login-box">
-      <div class="member-login-logo">
-        <img src="assets/img/logo.png" alt="Logo" onerror="this.remove()">
-        <h2>Member <em>Portal</em></h2>
-        <p>Chorale Saint Padre Pio</p>
+  <div class="login-page">
+
+    <!-- Hero panel — same as admin login -->
+    <div class="login-hero">
+      <img src="assets/img/hero-login.jpg" alt="Choir" class="login-hero-img"
+           onerror="this.style.display='none'">
+      <div class="login-hero-overlay"></div>
+      <div class="login-hero-content">
+        <div class="eyebrow">Est. 2022 · Chorale Saint Padre Pio</div>
+        <h1>Where <em>voices</em><br>become one</h1>
+      </div>
+    </div>
+
+    <!-- Login panel -->
+    <div class="login-panel">
+      <div class="login-logo" style="display:flex;align-items:center;gap:14px;margin-bottom:48px">
+        <img src="assets/img/logo.png" alt="Logo" style="width:52px;height:52px;border-radius:50%" onerror="this.remove()">
+        <div class="login-logo-text" style="font-family:var(--font-sans);font-size:.7rem;letter-spacing:.08em;color:var(--text-muted)">
+          MEMBER PORTAL
+          <strong style="display:block;font-family:var(--font-serif);font-size:1.1rem;color:var(--text-main);font-weight:500;letter-spacing:0">
+            Chorale <em style="color:var(--gold);font-style:italic">Saint Padre Pio</em>
+          </strong>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="ml-email"><i class="fas fa-envelope" style="margin-right:6px"></i>Email Address</label>
-        <input type="email" id="ml-email" placeholder="you@example.com" autocomplete="email">
-      </div>
+      <div style="width:100%;max-width:380px">
+        <h2 style="font-family:var(--font-serif);font-size:2rem;font-weight:400;margin-bottom:6px">
+          Welcome <em style="color:var(--gold);font-style:italic">back</em>
+        </h2>
+        <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:36px">Sign in to access your member portal</p>
 
-      <div class="form-group">
-        <label for="ml-password"><i class="fas fa-lock" style="margin-right:6px"></i>Password</label>
-        <input type="password" id="ml-password" placeholder="••••••••" autocomplete="current-password">
-      </div>
+        <div class="form-group">
+          <label for="ml-email"><i class="fas fa-envelope" style="margin-right:6px"></i>Email Address</label>
+          <input type="email" id="ml-email" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="ml-password"><i class="fas fa-lock" style="margin-right:6px"></i>Password</label>
+          <input type="password" id="ml-password" placeholder="••••••••" autocomplete="current-password">
+        </div>
 
-      <button class="btn-primary" id="ml-btn" onclick="memberSignIn()">
-        <span>Sign In</span>
-        <i class="fas fa-arrow-right"></i>
-      </button>
+        <button class="btn-primary" id="ml-btn" onclick="memberSignIn()">
+          <span>Sign In</span>
+          <i class="fas fa-arrow-right"></i>
+        </button>
 
-      <div class="error-msg" id="ml-error"></div>
+        <div class="error-msg" id="ml-error"></div>
 
-      <div style="text-align:center;margin-top:16px">
-        <a href="#" onclick="memberForgotPassword()" style="font-size:.75rem;color:var(--text-muted)">Forgot password?</a>
-      </div>
+        <div style="text-align:center;margin-top:24px">
+          <a href="#" onclick="memberForgotPassword()" style="font-size:.75rem;color:var(--text-muted)">Forgot password?</a>
+        </div>
 
-      <div style="text-align:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
-        <a href="index.html" style="font-size:.72rem;color:var(--text-light);display:inline-flex;align-items:center;gap:6px">
-          <i class="fas fa-shield-alt"></i> Admin Portal
-        </a>
+        <div style="text-align:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+          <a href="index.html" style="font-size:.72rem;color:var(--text-light);display:inline-flex;align-items:center;gap:6px">
+            <i class="fas fa-shield-alt"></i> Admin Portal
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -302,53 +159,87 @@
 
 <!-- ═══════════════ MEMBER DASHBOARD ═══════════════ -->
 <div id="member-dashboard" style="display:none">
-  <div class="member-layout">
 
-    <!-- Topbar -->
-    <div class="member-topbar">
-      <div class="member-topbar-brand">
-        <img src="assets/img/logo.png" alt="Logo" onerror="this.remove()">
-        <span>Chorale <em>Saint Padre Pio</em></span>
+  <!-- Mobile sidebar overlay -->
+  <div class="sidebar-overlay" id="mb-sidebar-overlay" onclick="mbCloseSidebar()"></div>
+
+  <div class="mb-layout">
+
+    <!-- ══ LEFT SIDEBAR ══ -->
+    <aside class="sidebar" id="mb-sidebar">
+      <div class="sidebar-header">
+        <img src="assets/img/logo.png" alt="Logo" class="sidebar-logo-img" onerror="this.remove()">
+        <div class="sidebar-logo-text">
+          MEMBER PORTAL
+          <strong>Chorale <em>Saint Padre Pio</em></strong>
+        </div>
       </div>
-      <div class="member-topbar-right">
-        <div id="mb-topbar-name" style="font-size:.78rem;color:rgba(255,255,255,.6)"></div>
-        <button class="topbar-btn" onclick="memberSignOut()" title="Sign out" style="color:rgba(255,255,255,.5)">
-          <i class="fas fa-sign-out-alt"></i>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">My Space</div>
+        <button class="nav-item active" data-tab="home" onclick="memberNav('home')">
+          <i class="fas fa-chart-pie"></i> My Dashboard
+        </button>
+        <button class="nav-item" data-tab="attendance" onclick="memberNav('attendance')">
+          <i class="fas fa-clipboard-check"></i> Attendance
+        </button>
+        <button class="nav-item" data-tab="contributions" onclick="memberNav('contributions')">
+          <i class="fas fa-coins"></i> Contributions
+        </button>
+        <button class="nav-item" data-tab="absence" onclick="memberNav('absence')">
+          <i class="fas fa-calendar-times"></i> Absence
+        </button>
+        <div class="nav-section-label">Choir</div>
+        <button class="nav-item" data-tab="leaderboard" onclick="memberNav('leaderboard')">
+          <i class="fas fa-trophy"></i> Leaderboard
+        </button>
+        <button class="nav-item" data-tab="scores" onclick="memberNav('scores')">
+          <i class="fas fa-music"></i> Music Scores
+        </button>
+        <button class="nav-item" data-tab="noticeboard" onclick="memberNav('noticeboard')">
+          <i class="fas fa-bullhorn"></i> Notice Board
+          <span id="mb-notif-dot" style="display:none;width:7px;height:7px;border-radius:50%;background:#c0392b;margin-left:4px;flex-shrink:0"></span>
+        </button>
+        <div class="nav-section-label">Account</div>
+        <button class="nav-item" data-tab="profile" onclick="memberNav('profile')">
+          <i class="fas fa-user"></i> My Profile
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="logout-btn" onclick="memberSignOut()">
+          <i class="fas fa-sign-out-alt"></i> Sign Out
         </button>
       </div>
-    </div>
+    </aside>
 
-    <!-- Nav tabs -->
-    <div class="member-nav-tabs">
-      <button class="member-tab active" data-tab="home" onclick="memberNav('home')">
-        <i class="fas fa-home"></i> My Dashboard
-      </button>
-      <button class="member-tab" data-tab="attendance" onclick="memberNav('attendance')">
-        <i class="fas fa-clipboard-check"></i> Attendance
-      </button>
-      <button class="member-tab" data-tab="contributions" onclick="memberNav('contributions')">
-        <i class="fas fa-coins"></i> Contributions
-      </button>
-      <button class="member-tab" data-tab="absence" onclick="memberNav('absence')">
-        <i class="fas fa-calendar-times"></i> Absence
-      </button>
-      <button class="member-tab" data-tab="leaderboard" onclick="memberNav('leaderboard')">
-        <i class="fas fa-trophy"></i> Leaderboard
-      </button>
-      <button class="member-tab" data-tab="scores" onclick="memberNav('scores')">
-        <i class="fas fa-music"></i> Scores
-      </button>
-      <button class="member-tab" data-tab="noticeboard" onclick="memberNav('noticeboard')">
-        <i class="fas fa-bullhorn"></i> Notice Board
-        <span id="mb-notif-dot" style="display:none;width:7px;height:7px;border-radius:50%;background:#c0392b;margin-left:2px"></span>
-      </button>
-      <button class="member-tab" data-tab="profile" onclick="memberNav('profile')">
-        <i class="fas fa-user"></i> My Profile
-      </button>
-    </div>
+    <!-- ══ MAIN CONTENT ══ -->
+    <div class="main-content">
 
-    <!-- Pages -->
-    <div class="member-page">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn hamburger" onclick="mbOpenSidebar()">
+            <i class="fas fa-bars"></i>
+          </button>
+          <div>
+            <div class="topbar-title" id="mb-topbar-title">My Dashboard</div>
+            <div class="topbar-date" id="mb-topbar-date"></div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <div id="mb-topbar-name" style="font-size:.72rem;color:var(--text-muted)"></div>
+          <button class="topbar-btn" title="Profile" onclick="mbToggleRightPanel()">
+            <i class="fas fa-user-circle"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Page area -->
+      <div class="page-area">
+
+        <!-- Page content -->
+        <main class="page-content">
 
       <!-- HOME -->
       <div id="mb-view-home" class="section-view active">
@@ -630,8 +521,62 @@
         </div>
       </div>
 
-    </div><!-- /member-page -->
-  </div><!-- /member-layout -->
+        </main><!-- /page-content -->
+
+        <!-- ══ RIGHT PANEL ══ -->
+        <aside class="right-panel" id="mb-right-panel">
+
+          <!-- Profile -->
+          <div class="right-panel-section">
+            <div class="right-panel-label">My Profile</div>
+            <div class="profile-avatar-placeholder" id="mb-rp-avatar" style="margin:0 auto 12px">?</div>
+            <div class="profile-name" id="mb-rp-name">—</div>
+            <div class="profile-role" id="mb-rp-role">—</div>
+            <div class="mb-voice-badge" id="mb-rp-voice" style="display:none"></div>
+            <div class="profile-motto" id="mb-rp-motto"><em>No motto set</em></div>
+            <button class="btn-ghost w-full" onclick="memberNav('profile')" style="justify-content:center;margin-top:8px">
+              <i class="fas fa-pencil-alt"></i> Edit Profile
+            </button>
+          </div>
+
+          <!-- Score summary -->
+          <div class="right-panel-section">
+            <div class="right-panel-label">My Score</div>
+            <div class="profile-stats">
+              <div class="profile-stat">
+                <div class="val" id="mb-rp-score">—</div>
+                <div class="lbl">Score</div>
+              </div>
+              <div class="profile-stat">
+                <div class="val" id="mb-rp-att">—</div>
+                <div class="lbl">Attendance</div>
+              </div>
+            </div>
+            <div style="margin-top:10px">
+              <div class="progress-bar-wrap">
+                <div class="progress-bar-fill" id="mb-rp-score-bar" style="width:0%"></div>
+              </div>
+              <div style="font-size:.68rem;color:var(--text-muted);margin-top:4px" id="mb-rp-score-lbl"></div>
+            </div>
+          </div>
+
+          <!-- Upcoming events -->
+          <div class="right-panel-section">
+            <div class="right-panel-label">Next Events</div>
+            <div id="mb-rp-events"><p class="muted" style="font-size:.78rem">Loading...</p></div>
+          </div>
+
+          <!-- Latest announcement -->
+          <div class="right-panel-section">
+            <div class="right-panel-label">Latest Notice</div>
+            <div id="mb-rp-ann"><p class="muted" style="font-size:.78rem">Loading...</p></div>
+          </div>
+
+        </aside><!-- /right-panel -->
+
+      </div><!-- /page-area -->
+    </div><!-- /main-content -->
+  </div><!-- /mb-layout -->
 </div><!-- /member-dashboard -->
 
 
@@ -767,12 +712,140 @@ document.getElementById('ml-password')?.addEventListener('keydown', e => {
   if (e.key === 'Enter') memberSignIn();
 });
 
+// ── Render right panel profile card ──
+function renderRightPanel(score) {
+  const u    = MEMBER_DATA;
+  const name = `${u.firstName||''} ${u.lastName||''}`.trim() || u.email;
+  const sCls = APP.scoreClass(score);
+  const colours = { excellent:'#27ae60', good:'#3498db', average:'#B8973A', poor:'#c0392b' };
+
+  // Avatar initials
+  const avatarEl = document.getElementById('mb-rp-avatar');
+  if (avatarEl) avatarEl.textContent = APP.initials(name);
+
+  // Name, role, voice
+  const nameEl = document.getElementById('mb-rp-name');
+  if (nameEl) nameEl.textContent = name;
+
+  const roleEl = document.getElementById('mb-rp-role');
+  if (roleEl) roleEl.textContent = APP.ROLES[u.role] || u.role || 'Member';
+
+  const voiceEl = document.getElementById('mb-rp-voice');
+  if (voiceEl && u.voice) {
+    voiceEl.textContent = u.voice;
+    voiceEl.style.display = 'inline-flex';
+  }
+
+  // Motto
+  const mottoEl = document.getElementById('mb-rp-motto');
+  if (mottoEl) mottoEl.innerHTML = u.motto ? `<em>"${u.motto}"</em>` : '<em>No motto set</em>';
+
+  // Score
+  const scoreEl = document.getElementById('mb-rp-score');
+  if (scoreEl) {
+    scoreEl.textContent = score;
+    scoreEl.style.color = colours[sCls] || 'var(--text-main)';
+  }
+
+  // Attendance rate
+  const total   = MEMBER_ATT.length;
+  const present = MEMBER_ATT.filter(r=>r.status==='present').length;
+  const late    = MEMBER_ATT.filter(r=>r.status==='late').length;
+  const attRate = total > 0 ? Math.round(((present+late*0.5)/total)*100) : 100;
+
+  const attEl = document.getElementById('mb-rp-att');
+  if (attEl) attEl.textContent = attRate + '%';
+
+  // Score progress bar
+  const barEl = document.getElementById('mb-rp-score-bar');
+  if (barEl) {
+    barEl.style.width = score + '%';
+    barEl.style.background = colours[sCls] || 'var(--gold)';
+  }
+
+  const lblEl = document.getElementById('mb-rp-score-lbl');
+  if (lblEl) lblEl.textContent = APP.scoreLabel(score);
+}
+
+// ── Populate right panel events & announcements ──
+async function loadRightPanelData() {
+  // Events
+  try {
+    const snap = await db.collection('events')
+      .where('date','>=', firebase.firestore.Timestamp.fromDate(new Date()))
+      .orderBy('date').limit(3).get();
+    const evEl = document.getElementById('mb-rp-events');
+    if (evEl) {
+      if (snap.empty) {
+        evEl.innerHTML = '<p class="muted" style="font-size:.78rem">No upcoming events.</p>';
+      } else {
+        evEl.innerHTML = snap.docs.map(d => {
+          const e = d.data();
+          return `
+            <div class="event-tag" style="margin-bottom:6px">
+              <div class="event-dot"></div>
+              <div>
+                <div style="font-weight:500;font-size:.78rem">${e.title}</div>
+                <div style="font-size:.68rem;color:var(--text-muted)">${APP.formatDateShort(e.date)}</div>
+              </div>
+            </div>`;
+        }).join('');
+      }
+    }
+  } catch(e) { console.warn('RP events:', e.message); }
+
+  // Latest announcement
+  try {
+    const snap = await db.collection('announcements').limit(20).get();
+    const annEl = document.getElementById('mb-rp-ann');
+    if (annEl) {
+      if (snap.empty) {
+        annEl.innerHTML = '<p class="muted" style="font-size:.78rem">No announcements.</p>';
+      } else {
+        const all = snap.docs.map(d=>d.data())
+          .sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+        const a = all[0];
+        const typeColors = { urgent:'badge-red', rehearsal:'badge-blue', event:'badge-gold', general:'badge-gray' };
+        annEl.innerHTML = `
+          <div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+              <span class="badge ${typeColors[a.type]||'badge-gray'}" style="font-size:.6rem">${a.type||'general'}</span>
+            </div>
+            <div style="font-weight:600;font-size:.82rem;margin-bottom:4px">${a.title}</div>
+            <div style="font-size:.75rem;color:var(--text-muted);line-height:1.5">${a.body?.substring(0,100)}${a.body?.length>100?'…':''}</div>
+            <button class="btn-ghost" style="margin-top:6px;font-size:.68rem;padding:4px 0;color:var(--gold)" onclick="memberNav('noticeboard')">
+              See all <i class="fas fa-arrow-right" style="font-size:.65rem"></i>
+            </button>
+          </div>`;
+      }
+    }
+  } catch(e) { console.warn('RP announcements:', e.message); }
+}
+
 // ── Navigation ──
+const MB_TITLES = {
+  home:          'My Dashboard',
+  attendance:    'Attendance',
+  contributions: 'Contributions',
+  absence:       'Absence Notification',
+  leaderboard:   'Leaderboard',
+  scores:        'Music Scores',
+  noticeboard:   'Notice Board',
+  profile:       'My Profile'
+};
+
 function memberNav(tab) {
   document.querySelectorAll('.section-view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.member-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
   document.getElementById(`mb-view-${tab}`)?.classList.add('active');
-  document.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
+  document.querySelector(`.nav-item[data-tab="${tab}"]`)?.classList.add('active');
+
+  // Update topbar title
+  const titleEl = document.getElementById('mb-topbar-title');
+  if (titleEl) titleEl.textContent = MB_TITLES[tab] || tab;
+
+  // Close mobile sidebar
+  mbCloseSidebar();
 
   const loaders = {
     attendance:    loadMemberAttendance,
@@ -787,14 +860,50 @@ function memberNav(tab) {
   if (loaders[tab]) loaders[tab]();
 }
 
+// ── Mobile sidebar helpers ──
+function mbOpenSidebar() {
+  document.getElementById('mb-sidebar')?.classList.add('open');
+  document.getElementById('mb-sidebar-overlay')?.classList.add('open');
+}
+
+function mbCloseSidebar() {
+  document.getElementById('mb-sidebar')?.classList.remove('open');
+  document.getElementById('mb-sidebar-overlay')?.classList.remove('open');
+}
+
+// ── Right panel toggle (mobile) ──
+function mbToggleRightPanel() {
+  const rp = document.getElementById('mb-right-panel');
+  const isOpen = rp.classList.toggle('open');
+  if (isOpen) {
+    let overlay = document.getElementById('mb-rp-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'mb-rp-overlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:199;background:rgba(0,0,0,0.35)';
+      overlay.addEventListener('click', () => {
+        rp.classList.remove('open');
+        overlay.remove();
+      });
+      document.body.appendChild(overlay);
+    }
+  } else {
+    document.getElementById('mb-rp-overlay')?.remove();
+  }
+}
+
 // ── Initialize portal ──
 async function initMemberPortal() {
   const u = MEMBER_DATA;
   const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email;
 
-  // Topbar name & welcome
-  document.getElementById('mb-topbar-name').textContent = name;
-  document.getElementById('mb-welcome-name').innerHTML  = `Hello, <em>${u.firstName || 'Member'}</em>`;
+  // Topbar
+  document.getElementById('mb-topbar-name').textContent  = name;
+  document.getElementById('mb-topbar-date').textContent   = APP.today();
+  document.getElementById('mb-topbar-title').textContent  = 'My Dashboard';
+
+  // Welcome section
+  document.getElementById('mb-welcome-name').innerHTML   = `Hello, <em>${u.firstName || 'Member'}</em>`;
   document.getElementById('mb-welcome-date').textContent = APP.today();
 
   // ── Load each data source independently ──
@@ -852,6 +961,8 @@ async function initMemberPortal() {
   });
   renderScoreRing(score);
   renderHomeBars();
+  renderRightPanel(score);
+  loadRightPanelData();
 
   // 5. Upcoming events
   try {
@@ -1228,7 +1339,14 @@ async function saveProfile() {
     toggleProfileEdit(false);
     loadMemberProfile();
     document.getElementById('mb-topbar-name').textContent = `${data.firstName} ${data.lastName}`.trim();
-    document.getElementById('mb-welcome-name').innerHTML = `Hello, <em>${data.firstName||'Member'}</em>`;
+    document.getElementById('mb-welcome-name').innerHTML  = `Hello, <em>${data.firstName||'Member'}</em>`;
+    // Refresh right panel with updated profile
+    const updScore = APP.calcMemberScore(MEMBER_DATA, {
+      attendanceRecords:   MEMBER_ATT,
+      performanceRecords:  MEMBER_PERF,
+      contributionRecords: MEMBER_CONTRIB
+    });
+    renderRightPanel(updScore);
   } catch(e) {
     APP.toast('Error: ' + e.message, 'error');
   }
