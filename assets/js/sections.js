@@ -1403,6 +1403,11 @@ APP.navigate = function(section) {
     return;
   }
 
+  if (section === 'notifications') {
+    APP.loadNotificationsSection();
+    return;
+  }
+
   // Apply edit lock after section loads (slight delay for DOM)
   setTimeout(() => APP.applyEditLock(section), 400);
 };
