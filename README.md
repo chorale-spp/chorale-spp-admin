@@ -1,5 +1,3 @@
-# Chorale Saint Padre Pio - Admin & Members Portal
-
 Yooo 😂 Welcome! If you see this, you must be someone close to the secretary (so be proud 😉). 
 
 _The management of this thing is simple, the secretary built it without any coding degree!! Could you believe that 😎💀..._
