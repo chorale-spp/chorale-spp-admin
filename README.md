@@ -1,4 +1,4 @@
-# Chorale Saint Padre Pio — Admin Portal
+# Chorale Saint Padre Pio - Admin Portal
 
 Internal management system for Chorale Saint Padre Pio.  
 Built with Jekyll + Firebase, deployed on GitHub Pages.
@@ -7,7 +7,7 @@ Built with Jekyll + Firebase, deployed on GitHub Pages.
 
 ## What this system does
 
-- **Members** — full directory, SATB voice groups, roles, join dates, individual scores
+- **Members** - full directory, SATB voice groups, roles, join dates, individual scores
 - **Attendance** — rehearsal & event registers with performance ratings per session
 - **Events** — calendar, budget breakdown by category, financial tracking per event
 - **Finances** — all income/expenses, monthly contributions (UGX 5,000/member), reports
