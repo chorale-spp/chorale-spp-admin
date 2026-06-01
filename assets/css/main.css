@@ -493,13 +493,16 @@ h1, h2, h3, h4, h5 { font-family: var(--font-serif); font-weight: 400; line-heig
 
 /* ── Top bar ── */
 .topbar {
-  height: 64px;
+  height: auto;
+  min-height: 64px;
   background: white;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 28px;
+  padding-top: max(12px, env(safe-area-inset-top));
+  padding-bottom: 12px;
   flex-shrink: 0;
 }
 
@@ -512,8 +515,9 @@ h1, h2, h3, h4, h5 { font-family: var(--font-serif); font-weight: 400; line-heig
 .topbar-title {
   font-family: var(--font-serif);
   font-size: 1.25rem;
-  font-weight: 400;
+  font-weight: 600;
   color: var(--text-main);
+  letter-spacing: 0.01em;
 }
 
 .topbar-date {
@@ -1490,10 +1494,6 @@ tbody td {
 /* ============================================
    PWA — Safe area insets (iPhone notch/home bar)
    ============================================ */
-.topbar {
-  padding-top: max(0px, env(safe-area-inset-top));
-}
-
 .sidebar {
   padding-top: max(0px, env(safe-area-inset-top));
   padding-bottom: max(0px, env(safe-area-inset-bottom));
