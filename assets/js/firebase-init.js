@@ -56,15 +56,16 @@ if (!IS_MEMBER_PORTAL) {
       // ── Admin login page ──
       if (IS_LOGIN_PAGE) {
         if (!profile) {
-          await auth.signOut();
+          // UID not linked — don't sign out, just show error
           showLoginError('Your account is not linked to a member record. Contact the Secretary.');
           hideLoading(loadEl);
           return;
         }
         if (!isAdmin) {
-          await auth.signOut();
-          showLoginError('You do not have admin access. Please use the Member Portal.');
+          // Member trying admin portal — redirect to member portal, don't sign out
           hideLoading(loadEl);
+          showLoginError('This account uses the Member Portal.');
+          setTimeout(() => { window.location.href = 'member.html'; }, 1500);
           return;
         }
         window.APP.currentUser = profile;
@@ -74,9 +75,14 @@ if (!IS_MEMBER_PORTAL) {
 
       // ── Admin dashboard ──
       if (IS_ADMIN_PORTAL) {
-        if (!profile || !isAdmin) {
-          await auth.signOut();
+        if (!profile) {
+          // No profile — send back to login without signing out
           window.location.href = 'index.html';
+          return;
+        }
+        if (!isAdmin) {
+          // Member account on admin portal — redirect to member portal, never sign out
+          window.location.href = 'member.html';
           return;
         }
         window.APP.currentUser = profile;
