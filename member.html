@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest-member.json">
   <meta name="theme-color" content="#1A1A1A">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Chorale SPP">
+  <meta name="apple-mobile-web-app-title" content="SPP Members">
   <link rel="apple-touch-icon" href="assets/img/logo.png">
   <link rel="icon" type="image/png" href="assets/img/logo.png">
   <title>My Portal — Chorale Saint Padre Pio</title>
@@ -196,7 +196,7 @@
       <nav class="sidebar-nav">
         <div class="nav-section-label">My Space</div>
         <button class="nav-item active" data-tab="home" onclick="memberNav('home')">
-          <i class="fas fa-chart-pie"></i> My Dashboard
+          <i class="fas fa-chart-pie"></i> Dashboard
         </button>
         <button class="nav-item" data-tab="attendance" onclick="memberNav('attendance')">
           <i class="fas fa-clipboard-check"></i> Attendance
@@ -242,12 +242,11 @@
             <i class="fas fa-bars"></i>
           </button>
           <div>
-            <div class="topbar-title" id="mb-topbar-title">My Dashboard</div>
+            <div class="topbar-title" id="mb-topbar-title">Dashboard</div>
             <div class="topbar-date" id="mb-topbar-date"></div>
           </div>
         </div>
         <div class="topbar-right">
-          <div id="mb-topbar-name" style="font-size:.72rem;color:var(--text-muted)"></div>
           <button class="topbar-btn" title="Profile" onclick="mbToggleRightPanel()">
             <i class="fas fa-user-circle"></i>
           </button>
@@ -631,8 +630,7 @@ auth.onAuthStateChanged(async (user) => {
         const snap = await db.collection('members').doc(user.uid).get();
 
         if (!snap.exists) {
-          // UID not linked to any member record
-          await auth.signOut();
+          // UID not in Firestore — show error but do NOT sign out
           if (loading) { loading.style.opacity='0'; setTimeout(()=>loading.remove(),400); }
           document.getElementById('member-login-screen').style.display = 'block';
           document.getElementById('member-dashboard').style.display    = 'none';
@@ -643,13 +641,14 @@ auth.onAuthStateChanged(async (user) => {
         const profile = { uid: user.uid, email: user.email, ...snap.data() };
         const role    = profile.role || '';
 
-        // Admin trying to use member portal — redirect them
+        // Admin account — redirect to admin portal WITHOUT signing out
+        // This allows both portals to coexist in separate tabs
         if (ADMIN_ROLES_M.includes(role)) {
-          await auth.signOut();
           if (loading) { loading.style.opacity='0'; setTimeout(()=>loading.remove(),400); }
           document.getElementById('member-login-screen').style.display = 'block';
           document.getElementById('member-dashboard').style.display    = 'none';
-          showMlError('Admin accounts use the Admin Portal. Click "Admin Portal" below.');
+          showMlError('This is an admin account. Redirecting to Admin Portal...');
+          setTimeout(() => { window.location.href = 'index.html'; }, 1500);
           return;
         }
 
@@ -842,7 +841,7 @@ async function loadRightPanelData() {
 
 // ── Navigation ──
 const MB_TITLES = {
-  home:          'My Dashboard',
+  home:          'Dashboard',
   attendance:    'Attendance',
   contributions: 'Contributions',
   absence:       'Absence Notification',
@@ -930,9 +929,8 @@ async function initMemberPortal() {
   const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email;
 
   // Topbar & welcome — instant, no Firestore needed
-  document.getElementById('mb-topbar-name').textContent  = name;
   document.getElementById('mb-topbar-date').textContent  = APP.today();
-  document.getElementById('mb-topbar-title').textContent = 'My Dashboard';
+  document.getElementById('mb-topbar-title').textContent = 'Dashboard';
   document.getElementById('mb-welcome-name').innerHTML   = `Hello, <em>${u.firstName || 'Member'}</em>`;
   document.getElementById('mb-welcome-date').textContent = APP.today();
 
