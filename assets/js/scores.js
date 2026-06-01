@@ -177,6 +177,15 @@ APP.loadScores = async function() {
       </button>
     </div>
 
+    <div style="margin-bottom:12px;display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-ghost" onclick="APP.expandAllSteps()" style="font-size:.72rem">
+        <i class="fas fa-expand-alt"></i> Expand all
+      </button>
+      <button class="btn-ghost" onclick="APP.collapseAllSteps()" style="font-size:.72rem">
+        <i class="fas fa-compress-alt"></i> Collapse all
+      </button>
+    </div>
+
     <div id="scores-list">
       <div style="text-align:center;padding:40px">
         <div class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--gold);margin:auto"></div>
@@ -286,75 +295,102 @@ APP.renderAdminScoresList = function() {
   let html = '';
   let totalCount = 0;
 
+  // Restore collapse state from session
+  if (!APP._scoresCollapsed) APP._scoresCollapsed = {};
+
   APP.MASS_STEPS.forEach(step => {
     const group = grouped[step];
     if (!group?.length) return;
     totalCount += group.length;
-    const icon = APP.MASS_ICONS[step] || 'fa-music';
+    const icon      = APP.MASS_ICONS[step] || 'fa-music';
+    const stepId    = step.replace(/\s+/g, '-').toLowerCase();
+    const collapsed = APP._scoresCollapsed[step] !== false; // default collapsed
 
     html += `
-      <div style="margin-bottom:28px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-          <div style="width:34px;height:34px;border-radius:var(--radius);background:rgba(184,151,58,0.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0">
+      <div style="margin-bottom:12px" id="step-wrap-${stepId}">
+
+        <!-- Collapsible header -->
+        <button onclick="APP.toggleScoreStep('${step}')"
+          style="width:100%;display:flex;align-items:center;gap:12px;padding:12px 16px;
+                 background:white;border:1px solid var(--border);border-radius:var(--radius-lg);
+                 cursor:pointer;transition:background .15s,border-color .15s;text-align:left"
+          onmouseover="this.style.borderColor='var(--gold)';this.style.background='rgba(184,151,58,0.04)'"
+          onmouseout="this.style.borderColor='var(--border)';this.style.background='white'">
+          <div style="width:34px;height:34px;border-radius:var(--radius);background:rgba(184,151,58,0.1);
+                      display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0">
             <i class="fas ${icon}"></i>
           </div>
-          <div>
-            <div style="font-family:var(--font-serif);font-size:1.05rem;font-weight:500">${step}</div>
+          <div style="flex:1">
+            <div style="font-family:var(--font-serif);font-size:1.05rem;font-weight:500;color:var(--text-main)">${step}</div>
             <div style="font-size:.68rem;color:var(--text-muted)">${group.length} score${group.length>1?'s':''}</div>
           </div>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Filename</th>
-                <th>Notes</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${group.map(s => `
-                <tr id="score-row-${s.sha}">
-                  <td>
-                    <div style="font-weight:600;font-size:.85rem">${s.title}</div>
-                    ${!s.metaId ? `<div style="font-size:.65rem;color:var(--text-light);margin-top:2px"><i class="fas fa-info-circle"></i> No custom title set</div>` : ''}
-                  </td>
-                  <td style="font-size:.75rem;color:var(--text-muted);font-family:monospace">${s.filename}</td>
-                  <td style="font-size:.78rem;color:var(--text-muted);max-width:180px">${s.notes || '—'}</td>
-                  <td>
-                    <div style="display:flex;gap:4px">
-                      <a href="${s.downloadURL}" target="_blank" class="btn-ghost" title="View PDF" style="padding:5px 8px"><i class="fas fa-eye"></i></a>
-                      <a href="${s.downloadURL}" download="${s.filename}" class="btn-ghost" title="Download" style="padding:5px 8px"><i class="fas fa-download"></i></a>
-                      ${canEdit ? `<button class="btn-ghost" title="Edit title & notes" style="padding:5px 8px;color:var(--gold)" onclick="APP.openScoreEdit('${s.sha}')"><i class="fas fa-pencil-alt"></i></button>` : ''}
-                    </div>
-                  </td>
+          <div id="step-chevron-${stepId}"
+            style="width:28px;height:28px;border-radius:50%;background:rgba(184,151,58,0.1);
+                   display:flex;align-items:center;justify-content:center;color:var(--gold);
+                   transition:transform .25s ease;flex-shrink:0;
+                   transform:${collapsed ? 'rotate(0deg)' : 'rotate(180deg)'}">
+            <i class="fas fa-chevron-down" style="font-size:.75rem"></i>
+          </div>
+        </button>
+
+        <!-- Collapsible content -->
+        <div id="step-content-${stepId}"
+          style="overflow:hidden;transition:max-height .3s ease,opacity .25s ease;
+                 max-height:${collapsed ? '0' : '9999px'};opacity:${collapsed ? '0' : '1'}">
+          <div class="table-wrapper" style="border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);margin-top:-1px">
+            <table>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Filename</th>
+                  <th>Notes</th>
+                  <th>Actions</th>
                 </tr>
-                <!-- Inline edit row (hidden) -->
-                <tr id="score-edit-${s.sha}" style="display:none;background:rgba(184,151,58,0.04)">
-                  <td colspan="4" style="padding:14px 16px">
-                    <div class="form-row" style="margin-bottom:10px">
-                      <div class="form-group-sm" style="margin-bottom:0">
-                        <label>Display Title</label>
-                        <input type="text" id="edit-title-${s.sha}" value="${s.title.replace(/"/g,'&quot;')}" placeholder="Display title">
+              </thead>
+              <tbody>
+                ${group.map(s => `
+                  <tr id="score-row-${s.sha}">
+                    <td>
+                      <div style="font-weight:600;font-size:.85rem">${s.title}</div>
+                      ${!s.metaId ? '<div style="font-size:.65rem;color:var(--text-light);margin-top:2px"><i class="fas fa-info-circle"></i> No custom title</div>' : ''}
+                    </td>
+                    <td style="font-size:.75rem;color:var(--text-muted);font-family:monospace">${s.filename}</td>
+                    <td style="font-size:.78rem;color:var(--text-muted);max-width:180px">${s.notes || '—'}</td>
+                    <td>
+                      <div style="display:flex;gap:4px">
+                        <a href="${s.downloadURL}" target="_blank" class="btn-ghost" title="View PDF" style="padding:5px 8px"><i class="fas fa-eye"></i></a>
+                        <a href="${s.downloadURL}" download="${s.filename}" class="btn-ghost" title="Download" style="padding:5px 8px"><i class="fas fa-download"></i></a>
+                        ${canEdit ? `<button class="btn-ghost" title="Edit" style="padding:5px 8px;color:var(--gold)" onclick="APP.openScoreEdit('${s.sha}')"><i class="fas fa-pencil-alt"></i></button>` : ''}
                       </div>
-                      <div class="form-group-sm" style="margin-bottom:0">
-                        <label>Notes</label>
-                        <input type="text" id="edit-notes-${s.sha}" value="${(s.notes||'').replace(/"/g,'&quot;')}" placeholder="Optional notes">
+                    </td>
+                  </tr>
+                  <tr id="score-edit-${s.sha}" style="display:none;background:rgba(184,151,58,0.04)">
+                    <td colspan="4" style="padding:14px 16px">
+                      <div class="form-row" style="margin-bottom:10px">
+                        <div class="form-group-sm" style="margin-bottom:0">
+                          <label>Display Title</label>
+                          <input type="text" id="edit-title-${s.sha}" value="${s.title.replace(/"/g,'&quot;')}" placeholder="Display title">
+                        </div>
+                        <div class="form-group-sm" style="margin-bottom:0">
+                          <label>Notes</label>
+                          <input type="text" id="edit-notes-${s.sha}" value="${(s.notes||'').replace(/"/g,'&quot;')}" placeholder="Optional notes">
+                        </div>
                       </div>
-                    </div>
-                    <div style="display:flex;gap:8px">
-                      <button class="btn-primary" style="width:auto;padding:7px 16px;font-size:.72rem" onclick="APP.saveScoreMeta('${s.sha}','${s.step}','${s.filename}','${s.metaId||''}')">
-                        <i class="fas fa-save"></i> Save
-                      </button>
-                      <button class="btn-ghost" onclick="APP.closeScoreEdit('${s.sha}')">Cancel</button>
-                    </div>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+                      <div style="display:flex;gap:8px">
+                        <button class="btn-primary" style="width:auto;padding:7px 16px;font-size:.72rem"
+                          onclick="APP.saveScoreMeta('${s.sha}','${s.step}','${s.filename}','${s.metaId||''}')">
+                          <i class="fas fa-save"></i> Save
+                        </button>
+                        <button class="btn-ghost" onclick="APP.closeScoreEdit('${s.sha}')">Cancel</button>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
+
       </div>
     `;
   });
@@ -367,6 +403,50 @@ APP.renderAdminScoresList = function() {
     </div>
     ${html}
   `;
+};
+
+// ── Toggle step collapse/expand ──
+APP.toggleScoreStep = function(step) {
+  if (!APP._scoresCollapsed) APP._scoresCollapsed = {};
+  const stepId    = step.replace(/\s+/g, '-').toLowerCase();
+  const content   = document.getElementById(`step-content-${stepId}`);
+  const chevron   = document.getElementById(`step-chevron-${stepId}`);
+  const collapsed = APP._scoresCollapsed[step] !== false;
+
+  if (collapsed) {
+    // Expand
+    APP._scoresCollapsed[step] = false;
+    if (content) { content.style.maxHeight = '9999px'; content.style.opacity = '1'; }
+    if (chevron) chevron.style.transform = 'rotate(180deg)';
+  } else {
+    // Collapse
+    APP._scoresCollapsed[step] = true;
+    if (content) { content.style.maxHeight = '0'; content.style.opacity = '0'; }
+    if (chevron) chevron.style.transform = 'rotate(0deg)';
+  }
+};
+
+// ── Expand all / Collapse all ──
+APP.expandAllSteps = function() {
+  APP.MASS_STEPS.forEach(step => {
+    APP._scoresCollapsed[step] = false;
+    const stepId  = step.replace(/\s+/g, '-').toLowerCase();
+    const content = document.getElementById(`step-content-${stepId}`);
+    const chevron = document.getElementById(`step-chevron-${stepId}`);
+    if (content) { content.style.maxHeight = '9999px'; content.style.opacity = '1'; }
+    if (chevron) chevron.style.transform = 'rotate(180deg)';
+  });
+};
+
+APP.collapseAllSteps = function() {
+  APP.MASS_STEPS.forEach(step => {
+    APP._scoresCollapsed[step] = true;
+    const stepId  = step.replace(/\s+/g, '-').toLowerCase();
+    const content = document.getElementById(`step-content-${stepId}`);
+    const chevron = document.getElementById(`step-chevron-${stepId}`);
+    if (content) { content.style.maxHeight = '0'; content.style.opacity = '0'; }
+    if (chevron) chevron.style.transform = 'rotate(0deg)';
+  });
 };
 
 // ── Inline edit open/close ──
@@ -612,6 +692,14 @@ APP.loadMemberScores = async function(containerId) {
           ${APP._memberScores.length} scores
         </div>
       </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px">
+        <button class="btn-ghost" onclick="APP.MASS_STEPS.forEach(s=>{APP._mbScoresCollapsed=APP._mbScoresCollapsed||{};APP._mbScoresCollapsed[s]=false;const id='mb-'+s.replace(/\s+/g,'-').toLowerCase();const c=document.getElementById(id+'-content');const ch=document.getElementById(id+'-chevron');if(c){c.style.maxHeight='9999px';c.style.opacity='1';}if(ch)ch.style.transform='rotate(180deg)';})" style="font-size:.72rem">
+          <i class="fas fa-expand-alt"></i> Expand all
+        </button>
+        <button class="btn-ghost" onclick="APP.MASS_STEPS.forEach(s=>{APP._mbScoresCollapsed=APP._mbScoresCollapsed||{};APP._mbScoresCollapsed[s]=true;const id='mb-'+s.replace(/\s+/g,'-').toLowerCase();const c=document.getElementById(id+'-content');const ch=document.getElementById(id+'-chevron');if(c){c.style.maxHeight='0';c.style.opacity='0';}if(ch)ch.style.transform='rotate(0deg)';})" style="font-size:.72rem">
+          <i class="fas fa-compress-alt"></i> Collapse all
+        </button>
+      </div>
       <div id="mb-scores-list"></div>
     `;
 
@@ -620,6 +708,24 @@ APP.loadMemberScores = async function(containerId) {
   } catch(e) {
     el.innerHTML = '<p class="muted">Error loading scores. Please try again.</p>';
     console.error(e);
+  }
+};
+
+APP.toggleMbScoreStep = function(step) {
+  if (!APP._mbScoresCollapsed) APP._mbScoresCollapsed = {};
+  const stepId    = 'mb-' + step.replace(/\s+/g, '-').toLowerCase();
+  const content   = document.getElementById(`${stepId}-content`);
+  const chevron   = document.getElementById(`${stepId}-chevron`);
+  const collapsed = APP._mbScoresCollapsed[step] !== false;
+
+  if (collapsed) {
+    APP._mbScoresCollapsed[step] = false;
+    if (content) { content.style.maxHeight = '9999px'; content.style.opacity = '1'; }
+    if (chevron) chevron.style.transform = 'rotate(180deg)';
+  } else {
+    APP._mbScoresCollapsed[step] = true;
+    if (content) { content.style.maxHeight = '0'; content.style.opacity = '0'; }
+    if (chevron) chevron.style.transform = 'rotate(0deg)';
   }
 };
 
