@@ -63,7 +63,9 @@ service cloud.firestore {
     }
 
     match /settings/{docId} {
-      allow read, write: if isAuth() && (isDirector() || isSecretary());
+      // scores_cache readable by all authenticated (members need it for score list)
+      allow read: if isAuth();
+      allow write: if isAuth() && (isDirector() || isSecretary() || isArchivist());
     }
 
     // ── Notifications ──
