@@ -36,9 +36,13 @@ APP.MASS_ICONS = {
 APP.fetchStepFiles = async function(step) {
   const url = `${GITHUB_API}/${encodeURIComponent(step)}`;
   try {
-    const res  = await fetch(url, { headers: { 'Accept': 'application/vnd.github.v3+json' } });
-    if (!res.ok) return [];
+    const res = await Promise.race([
+      fetch(url, { headers: { 'Accept': 'application/vnd.github.v3+json' } }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+    ]);
+    if (!res.ok) return null; // null = rate-limited or error
     const data = await res.json();
+    if (!Array.isArray(data)) return null;
     return data
       .filter(f => f.name.toLowerCase().endsWith('.pdf'))
       .map(f => ({
@@ -48,17 +52,55 @@ APP.fetchStepFiles = async function(step) {
         sha: f.sha
       }));
   } catch(e) {
-    return [];
+    return null; // null = failed, use cache
   }
 };
 
 // ── Fetch all scores across all steps ──
+// Returns { files, fromCache } 
 APP.fetchAllScoreFiles = async function() {
-  const results = await Promise.all(
-    APP.MASS_STEPS.map(step => APP.fetchStepFiles(step))
-  );
-  // Flatten
-  return results.flat();
+  const results  = await Promise.all(APP.MASS_STEPS.map(step => APP.fetchStepFiles(step)));
+  const allNull  = results.every(r => r === null);
+
+  if (allNull) {
+    // GitHub API failed (rate limit) — load from Firestore file cache
+    console.warn('GitHub API unavailable, loading from Firestore cache');
+    return { files: await APP.loadFilesFromCache(), fromCache: true };
+  }
+
+  // At least some folders responded — build file list
+  const files = results.flatMap((r, i) => r || []); // skip null steps
+
+  // Save to Firestore cache for future rate-limit fallback
+  APP.saveFilesToCache(files).catch(() => {});
+
+  return { files, fromCache: false };
+};
+
+// ── Save file list to Firestore cache ──
+APP.saveFilesToCache = async function(files) {
+  try {
+    await db.collection('settings').doc('scores_cache').set({
+      files: files.map(f => ({
+        filename:    f.filename,
+        step:        f.step,
+        sha:         f.sha,
+        downloadURL: f.downloadURL
+      })),
+      cachedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(e) { /* silent */ }
+};
+
+// ── Load file list from Firestore cache ──
+APP.loadFilesFromCache = async function() {
+  try {
+    const snap = await db.collection('settings').doc('scores_cache').get();
+    if (snap.exists && snap.data().files) {
+      return snap.data().files;
+    }
+  } catch(e) { /* silent */ }
+  return [];
 };
 
 // ── Load Firestore metadata for all files ──
@@ -227,29 +269,43 @@ APP.loadScores = async function() {
 // ── Refresh: fetch GitHub files + Firestore metadata ──
 APP.refreshScores = async function() {
   const el = document.getElementById('scores-list');
-  if (el) el.innerHTML = `<div style="text-align:center;padding:30px"><div class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--gold);margin:auto"></div><div style="font-size:.75rem;color:var(--text-muted);margin-top:10px">Reading repository...</div></div>`;
+  if (el) el.innerHTML = `<div style="text-align:center;padding:30px">
+    <div class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--gold);margin:auto"></div>
+    <div style="font-size:.75rem;color:var(--text-muted);margin-top:10px">Reading repository...</div>
+  </div>`;
 
   try {
-    const [files, meta] = await Promise.all([
+    const [result, meta] = await Promise.all([
       APP.fetchAllScoreFiles(),
       APP.fetchScoreMetadata()
     ]);
 
+    const { files, fromCache } = result;
+
     // Merge file list with metadata
     APP._scores = files.map(f => {
-      const key  = `${f.step}||${f.filename}`;
-      const m    = meta[key] || {};
+      const key = `${f.step}||${f.filename}`;
+      const m   = meta[key] || {};
       return {
         ...f,
-        metaId: m.id || null,
+        metaId: m.id   || null,
         title:  m.title || APP.filenameToTitle(f.filename),
         notes:  m.notes || ''
       };
     });
 
+    // Show cache notice if using fallback
+    if (fromCache && el) {
+      const notice = document.createElement('div');
+      notice.style.cssText = 'padding:8px 14px;background:rgba(184,151,58,0.08);border-radius:var(--radius);font-size:.75rem;color:var(--text-muted);margin-bottom:14px;display:flex;align-items:center;gap:8px';
+      notice.innerHTML = '<i class="fas fa-info-circle" style="color:var(--gold)"></i> Showing cached list — GitHub API rate limit reached. Try refreshing in an hour.';
+      el.innerHTML = '';
+      el.appendChild(notice);
+    }
+
     APP.renderAdminScoresList();
   } catch(e) {
-    if (el) el.innerHTML = `<p class="muted" style="padding:20px">Error reading repository. Make sure the repo is public and scores folders exist.</p>`;
+    if (el) el.innerHTML = `<p class="muted" style="padding:20px">Error reading repository.</p>`;
   }
 };
 
@@ -653,10 +709,12 @@ APP.loadMemberScores = async function(containerId) {
   </div>`;
 
   try {
-    const [files, meta] = await Promise.all([
+    const [result, meta] = await Promise.all([
       APP.fetchAllScoreFiles(),
       APP.fetchScoreMetadata()
     ]);
+
+    const { files } = result;
 
     APP._memberScores = files.map(f => {
       const key = `${f.step}||${f.filename}`;
