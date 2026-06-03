@@ -812,47 +812,75 @@ APP.renderMemberScoresList = function() {
   APP.MASS_STEPS.forEach(s => { grouped[s] = []; });
   scores.forEach(s => { if (grouped[s.step]) grouped[s.step].push(s); });
 
+  if (!APP._mbScoresCollapsed) APP._mbScoresCollapsed = {};
+
   let html = '';
   APP.MASS_STEPS.forEach(step => {
     const group = grouped[step];
     if (!group?.length) return;
-    const icon = APP.MASS_ICONS[step] || 'fa-music';
+    const icon      = APP.MASS_ICONS[step] || 'fa-music';
+    const stepId    = 'mb-' + step.replace(/\s+/g, '-').toLowerCase();
+    const collapsed = APP._mbScoresCollapsed[step] !== false; // default collapsed
 
     html += `
-      <div style="margin-bottom:24px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)">
-          <div style="width:30px;height:30px;border-radius:var(--radius);background:rgba(184,151,58,0.1);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0;font-size:.8rem">
+      <div style="margin-bottom:10px">
+
+        <!-- Collapsible header -->
+        <button onclick="APP.toggleMbScoreStep('${step}')"
+          style="width:100%;display:flex;align-items:center;gap:10px;padding:11px 14px;
+                 background:white;border:1px solid var(--border);border-radius:var(--radius-lg);
+                 cursor:pointer;transition:background .15s,border-color .15s;text-align:left">
+          <div style="width:30px;height:30px;border-radius:var(--radius);background:rgba(184,151,58,0.1);
+                      display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0;font-size:.8rem">
             <i class="fas ${icon}"></i>
           </div>
-          <span style="font-family:var(--font-serif);font-size:1rem;font-weight:500">${step}</span>
-          <span style="font-size:.68rem;color:var(--text-muted);background:var(--cream);padding:2px 8px;border-radius:10px">${group.length}</span>
+          <span style="font-family:var(--font-serif);font-size:.98rem;font-weight:500;color:var(--text-main);flex:1">${step}</span>
+          <span style="font-size:.68rem;color:var(--text-muted);background:var(--cream);padding:2px 8px;border-radius:10px;margin-right:6px">${group.length}</span>
+          <div id="${stepId}-chevron"
+            style="width:24px;height:24px;border-radius:50%;background:rgba(184,151,58,0.1);
+                   display:flex;align-items:center;justify-content:center;color:var(--gold);
+                   transition:transform .25s;transform:${collapsed ? 'rotate(0deg)' : 'rotate(180deg)'}">
+            <i class="fas fa-chevron-down" style="font-size:.65rem"></i>
+          </div>
+        </button>
+
+        <!-- Collapsible content -->
+        <div id="${stepId}-content"
+          style="overflow:hidden;transition:max-height .3s ease,opacity .25s ease;
+                 max-height:${collapsed ? '0' : '9999px'};opacity:${collapsed ? '0' : '1'}">
+          <div style="display:flex;flex-direction:column;gap:6px;padding-top:6px">
+            ${group.map(s => `
+              <div style="display:flex;align-items:center;gap:12px;padding:11px 14px;
+                           background:white;border:1px solid var(--border);border-radius:var(--radius);
+                           transition:box-shadow .15s"
+                   onmouseover="this.style.boxShadow='var(--shadow)'"
+                   onmouseout="this.style.boxShadow=''">
+                <div style="width:34px;height:40px;background:rgba(192,57,43,0.07);border-radius:4px;
+                             display:flex;align-items:center;justify-content:center;flex-shrink:0;
+                             border:1px solid rgba(192,57,43,0.12)">
+                  <i class="fas fa-file-pdf" style="color:#c0392b;font-size:.95rem"></i>
+                </div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-weight:600;font-size:.84rem;margin-bottom:2px">${s.title}</div>
+                  ${s.notes ? `<div style="font-size:.7rem;color:var(--text-muted)"><i class="fas fa-info-circle" style="margin-right:3px;color:var(--gold)"></i>${s.notes}</div>` : ''}
+                </div>
+                <div style="display:flex;gap:5px;flex-shrink:0">
+                  <a href="${s.downloadURL}" target="_blank" class="btn-secondary" style="padding:5px 10px;font-size:.68rem">
+                    <i class="fas fa-eye"></i> View
+                  </a>
+                  <a href="${s.downloadURL}" download="${s.filename}" class="btn-ghost" style="padding:5px 8px" title="Download">
+                    <i class="fas fa-download"></i>
+                  </a>
+                </div>
+              </div>
+            `).join('')}
+          </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          ${group.map(s => `
-            <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:white;border:1px solid var(--border);border-radius:var(--radius);transition:box-shadow .15s,transform .15s"
-                 onmouseover="this.style.boxShadow='var(--shadow)';this.style.transform='translateY(-1px)'"
-                 onmouseout="this.style.boxShadow='';this.style.transform=''">
-              <div style="width:36px;height:44px;background:rgba(192,57,43,0.07);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(192,57,43,0.12)">
-                <i class="fas fa-file-pdf" style="color:#c0392b;font-size:1rem"></i>
-              </div>
-              <div style="flex:1;min-width:0">
-                <div style="font-weight:600;font-size:.86rem;margin-bottom:2px">${s.title}</div>
-                ${s.notes ? `<div style="font-size:.72rem;color:var(--text-muted)"><i class="fas fa-info-circle" style="margin-right:3px;color:var(--gold)"></i>${s.notes}</div>` : ''}
-              </div>
-              <div style="display:flex;gap:6px;flex-shrink:0">
-                <a href="${s.downloadURL}" target="_blank" class="btn-secondary" style="padding:6px 12px;font-size:.7rem">
-                  <i class="fas fa-eye"></i> View
-                </a>
-                <a href="${s.downloadURL}" download="${s.filename}" class="btn-ghost" style="padding:6px 10px" title="Download PDF">
-                  <i class="fas fa-download"></i>
-                </a>
-              </div>
-            </div>
-          `).join('')}
-        </div>
+
       </div>
     `;
   });
 
   el.innerHTML = html;
 };
+
