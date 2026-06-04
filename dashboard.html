@@ -9,7 +9,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Chorale SPP">
+  <meta name="apple-mobile-web-app-title" content="SPP Admin">
   <link rel="apple-touch-icon" href="assets/img/logo.png">
   <link rel="icon" type="image/png" href="assets/img/logo.png">
   <title>Dashboard — Chorale Saint Padre Pio</title>
@@ -72,6 +72,12 @@
       <button class="nav-item" data-nav="attendance" onclick="APP.navigate('attendance')">
         <i class="fas fa-clipboard-check"></i>
         Attendance
+      </button>
+
+      <button class="nav-item" data-nav="absences" onclick="APP.navigate('absences')" style="position:relative">
+        <i class="fas fa-comment-medical"></i>
+        Absence Notices
+        <span id="abs-pending-badge" style="display:none;position:absolute;right:16px;top:50%;transform:translateY(-50%);min-width:18px;height:18px;border-radius:9px;background:#c0392b;color:white;font-size:.6rem;font-weight:700;align-items:center;justify-content:center;padding:0 4px"></span>
       </button>
 
       <div class="nav-section-label">Planning</div>
@@ -147,6 +153,9 @@
 
         <!-- Attendance -->
         <div class="section-view" id="view-attendance"></div>
+
+        <!-- Absences -->
+        <div class="section-view" id="view-absences"></div>
 
         <!-- Events -->
         <div class="section-view" id="view-events"></div>
@@ -582,6 +591,7 @@
 <script src="assets/js/roles.js"></script>
 <script src="assets/js/announcements.js"></script>
 <script src="assets/js/scores.js"></script>
+<script src="assets/js/absences.js"></script>
 <script src="assets/js/sections.js"></script>
 <script>
 
@@ -601,6 +611,10 @@ window.initDashboard = async function() {
 
   // Populate member selects in modals
   APP.populateSelects();
+
+  // Poll pending absences badge
+  APP.pollPendingAbsences();
+  setInterval(APP.pollPendingAbsences, 60000);
 
 
   // Show member portal link in sidebar footer
