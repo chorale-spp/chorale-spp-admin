@@ -1405,6 +1405,11 @@ APP.navigate = function(section) {
     return;
   }
 
+  if (section === 'absences') {
+    APP.loadAbsenceNotices();
+    return;
+  }
+
   // Apply edit lock after section loads (slight delay for DOM)
   setTimeout(() => APP.applyEditLock(section), 400);
 };
@@ -1421,3 +1426,22 @@ APP.navigate = function(section) {
     setTimeout(() => APP.applyEditLock(sectionMap[fn]), 400);
   };
 });
+
+
+// ── Poll pending absence count for badge ──
+APP.pollPendingAbsences = async function() {
+  try {
+    const snap = await db.collection('absences')
+      .where('status', '==', 'pending').get();
+    const count = snap.size;
+    const badge = document.getElementById('abs-pending-badge');
+    if (badge) {
+      if (count > 0) {
+        badge.textContent = count > 9 ? '9+' : count;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  } catch(e) { /* silent */ }
+};
