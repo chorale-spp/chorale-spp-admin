@@ -205,7 +205,7 @@
           <i class="fas fa-coins"></i> Contributions
         </button>
         <button class="nav-item" data-tab="absence" onclick="memberNav('absence')">
-          <i class="fas fa-calendar-times"></i> Absence
+          <i class="fas fa-comment-medical"></i> Absence
         </button>
         <div class="nav-section-label">Choir</div>
         <button class="nav-item" data-tab="leaderboard" onclick="memberNav('leaderboard')">
@@ -374,51 +374,9 @@
 
       <!-- ABSENCE -->
       <div id="mb-view-absence" class="section-view">
-        <div class="page-header">
-          <div class="eyebrow">Notify</div>
-          <h2>Absence <em>Notification</em></h2>
-          <div class="divider"></div>
-          <div class="subtitle">Submit in advance so your voice responsable is informed.</div>
-        </div>
-
-        <div class="absence-card">
-          <div style="font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:16px">Submit an Absence</div>
-          <div class="form-row">
-            <div class="form-group-sm">
-              <label>Date of Absence *</label>
-              <input type="date" id="abs-date">
-            </div>
-            <div class="form-group-sm">
-              <label>Session Type</label>
-              <select id="abs-type" style="padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);font-size:.83rem;outline:none;background:var(--cream-light);width:100%">
-                <option value="rehearsal">Rehearsal</option>
-                <option value="event">Event</option>
-                <option value="meeting">Meeting</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group-sm">
-            <label>Reason *</label>
-            <textarea id="abs-reason" rows="3"
-              style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);font-size:.83rem;resize:vertical;background:var(--cream-light);outline:none"
-              placeholder="Brief reason for your absence..."></textarea>
-          </div>
-          <button class="btn-primary" style="width:auto;padding:10px 22px;margin-top:4px" onclick="submitAbsence()">
-            <i class="fas fa-paper-plane"></i> Submit Notification
-          </button>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><h3>My Absence History</h3></div>
-          <div class="card-body" style="padding:0" id="mb-absence-list">
-            <div style="text-align:center;padding:20px">
-              <div class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--gold);margin:auto"></div>
-            </div>
-          </div>
-        </div>
       </div>
 
-      <!-- LEADERBOARD -->
+            <!-- LEADERBOARD -->
       <div id="mb-view-leaderboard" class="section-view">
         <div class="page-header">
           <div class="eyebrow">Rankings</div>
@@ -602,6 +560,7 @@
 <script src="assets/js/utils.js"></script>
 <script src="assets/js/announcements.js"></script>
 <script src="assets/js/scores.js"></script>
+<script src="assets/js/absences.js"></script>
 
 <script>
 // ============================================
@@ -844,7 +803,7 @@ const MB_TITLES = {
   home:          'Dashboard',
   attendance:    'Attendance',
   contributions: 'Contributions',
-  absence:       'Absence Notification',
+  absence:       'Absence Notices',
   leaderboard:   'Leaderboard',
   scores:        'Music Scores',
   noticeboard:   'Notice Board',
@@ -867,7 +826,7 @@ function memberNav(tab) {
   const loaders = {
     attendance:    loadMemberAttendance,
     contributions: loadMemberContributions,
-    absence:       loadMemberAbsences,
+    absence:       () => APP.loadMemberAbsences(),
     leaderboard:   loadLeaderboard,
     scores:        () => APP.loadMemberScores('mb-scores-container'),
     noticeboard:   () => APP.loadAnnouncements('announcements-container', false),
