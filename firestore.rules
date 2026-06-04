@@ -13,6 +13,7 @@ service cloud.firestore {
     function isVoiceResp()   { return myRole() == 'voice_resp'; }
     function isMaestro()     { return myRole() == 'maestro'; }
     function isAdmin()       { return myRole() in ['music_director','secretary','treasurer','archivist','maestro','discipline_dir','discipline_vic','voice_resp']; }
+    function canManageAbsences() { return myRole() in ['music_director','discipline_dir','discipline_vic','secretary']; }
 
     match /members/{memberId} {
       allow read: if isAuth();
@@ -45,7 +46,6 @@ service cloud.firestore {
       allow write: if isAuth() && (isDirector() || isSecretary());
     }
 
-    // Scores metadata only — actual PDFs live in the GitHub repo
     match /scores/{docId} {
       allow read: if isAuth();
       allow write: if isAuth() && (isDirector() || isArchivist());
@@ -56,32 +56,18 @@ service cloud.firestore {
       allow write: if isAuth() && (isDirector() || isSecretary());
     }
 
+    // Absences — members can create and read/update their own threads
+    // Discipline directors, music director, secretary can read and update all
     match /absences/{docId} {
-      allow read: if isAuth() && (isAdmin() || resource.data.memberId == uid());
+      allow read:   if isAuth() && (canManageAbsences() || resource.data.memberId == uid());
       allow create: if isAuth() && request.resource.data.memberId == uid();
-      allow update, delete: if isAuth() && isAdmin();
+      allow update: if isAuth() && (canManageAbsences() || resource.data.memberId == uid());
+      allow delete: if isAuth() && isDirector();
     }
 
     match /settings/{docId} {
-      // scores_cache readable by all authenticated (members need it for score list)
       allow read: if isAuth();
       allow write: if isAuth() && (isDirector() || isSecretary() || isArchivist());
-    }
-
-    // ── Notifications ──
-    // Each user can only read/delete their own notifications
-    // Any authenticated user can create (for sending to others)
-    match /notifications/{docId} {
-      allow read, delete: if isAuth() && (resource.data.uid == uid() || isAdmin());
-      allow create: if isAuth();
-      allow update: if isAuth() && resource.data.uid == uid();
-    }
-
-    // ── Push subscriptions ──
-    // Each user manages their own subscription
-    match /push_subscriptions/{userId} {
-      allow read:  if isAuth() && (userId == uid() || isAdmin());
-      allow write: if isAuth() && userId == uid();
     }
   }
 }
