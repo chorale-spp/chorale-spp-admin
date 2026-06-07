@@ -522,6 +522,9 @@ APP.loadAbsenceNotices = async function() {
 APP.renderAbsenceInbox = async function() {
   const statusFilter = document.getElementById('abs-status-filter')?.value || '';
   const voiceFilter  = document.getElementById('abs-voice-filter')?.value  || '';
+  const listEl = document.getElementById('admin-absence-list');
+
+  if (listEl) listEl.innerHTML = '<div style="text-align:center;padding:30px"><div class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--gold);margin:auto"></div><div style="font-size:.75rem;color:var(--text-muted);margin-top:10px">Loading absences...</div></div>';
 
   try {
     const snap = await db.collection('absences').get();
@@ -536,7 +539,6 @@ APP.renderAbsenceInbox = async function() {
     const countEl = document.getElementById('admin-abs-count');
     if (countEl) countEl.textContent = filtered.length;
 
-    const listEl = document.getElementById('admin-absence-list');
     if (!listEl) return;
 
     if (!filtered.length) {
@@ -585,9 +587,15 @@ APP.renderAbsenceInbox = async function() {
     APP.renderAbsenceRecordsTable(APP._allAbsences);
 
   } catch(e) {
-    console.error(e);
-    document.getElementById('admin-absence-list').innerHTML =
-      '<p class="muted" style="padding:16px">Error loading absences.</p>';
+    console.error('renderAbsenceInbox error:', e);
+    const listEl2 = document.getElementById('admin-absence-list');
+    if (listEl2) listEl2.innerHTML = `
+      <div style="padding:20px">
+        <p style="color:#c0392b;font-size:.82rem;margin-bottom:8px"><i class="fas fa-exclamation-triangle" style="margin-right:6px"></i><strong>Error loading absences</strong></p>
+        <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px">${e.message}</p>
+        <p style="font-size:.75rem;color:var(--text-muted)">This is likely a <strong>Firestore rules issue</strong>. Please make sure you have published the updated rules in Firebase Console → Firestore → Rules.</p>
+        <button class="btn-secondary" style="margin-top:10px" onclick="APP.renderAbsenceInbox()"><i class="fas fa-sync-alt"></i> Try again</button>
+      </div>`;
   }
 };
 
