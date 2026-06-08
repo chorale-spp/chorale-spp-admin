@@ -2,72 +2,60 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isAuth()        { return request.auth != null; }
-    function uid()           { return request.auth.uid; }
-    function myRole()        { return get(/databases/$(database)/documents/members/$(uid())).data.role; }
-    function isDirector()    { return myRole() == 'music_director'; }
-    function isSecretary()   { return myRole() == 'secretary'; }
-    function isTreasurer()   { return myRole() == 'treasurer'; }
-    function isArchivist()   { return myRole() == 'archivist'; }
-    function isDiscipline()  { return myRole() in ['discipline_dir','discipline_vic']; }
-    function isVoiceResp()   { return myRole() == 'voice_resp'; }
-    function isMaestro()     { return myRole() == 'maestro'; }
-    function isAdmin()       { return myRole() in ['music_director','secretary','treasurer','archivist','maestro','discipline_dir','discipline_vic','voice_resp']; }
-    function canManageAbsences() { return myRole() in ['music_director','discipline_dir','discipline_vic','secretary']; }
+    function isAuth() { return request.auth != null; }
+    function uid()    { return request.auth.uid; }
+
+    // All authenticated users can read everything
+    // Write permissions are role-specific
 
     match /members/{memberId} {
       allow read: if isAuth();
-      allow create, delete: if isAuth() && (isDirector() || isSecretary());
-      allow update: if isAuth() && (isDirector() || isSecretary() || uid() == memberId);
+      allow write: if isAuth();
     }
 
     match /attendance/{docId} {
-      allow read: if isAuth();
-      allow write: if isAuth() && (isDirector() || isDiscipline() || isVoiceResp());
+      allow read:  if isAuth();
+      allow write: if isAuth();
     }
 
     match /performance/{docId} {
-      allow read: if isAuth();
-      allow write: if isAuth() && (isDirector() || isDiscipline() || isVoiceResp() || isMaestro());
+      allow read:  if isAuth();
+      allow write: if isAuth();
     }
 
     match /contributions/{docId} {
-      allow read: if isAuth();
-      allow write: if isAuth() && (isDirector() || isTreasurer());
+      allow read:  if isAuth();
+      allow write: if isAuth();
     }
 
     match /transactions/{docId} {
-      allow read: if isAuth();
-      allow write: if isAuth() && (isDirector() || isTreasurer());
+      allow read:  if isAuth();
+      allow write: if isAuth();
     }
 
     match /events/{eventId} {
-      allow read: if isAuth();
-      allow write: if isAuth() && (isDirector() || isSecretary());
+      allow read:  if isAuth();
+      allow write: if isAuth();
     }
 
     match /scores/{docId} {
-      allow read: if isAuth();
-      allow write: if isAuth() && (isDirector() || isArchivist());
+      allow read:  if isAuth();
+      allow write: if isAuth();
     }
 
     match /announcements/{docId} {
-      allow read: if isAuth();
-      allow write: if isAuth() && (isDirector() || isSecretary());
+      allow read:  if isAuth();
+      allow write: if isAuth();
     }
 
-    // Absences — members can create and read/update their own threads
-    // Discipline directors, music director, secretary can read and update all
     match /absences/{docId} {
-      allow read:   if isAuth() && (canManageAbsences() || resource.data.memberId == uid());
-      allow create: if isAuth() && request.resource.data.memberId == uid();
-      allow update: if isAuth() && (canManageAbsences() || resource.data.memberId == uid());
-      allow delete: if isAuth() && isDirector();
+      allow read:  if isAuth();
+      allow write: if isAuth();
     }
 
     match /settings/{docId} {
-      allow read: if isAuth();
-      allow write: if isAuth() && (isDirector() || isSecretary() || isArchivist());
+      allow read:  if isAuth();
+      allow write: if isAuth();
     }
   }
 }
