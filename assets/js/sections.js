@@ -1411,10 +1411,8 @@ APP.navigate = function(section) {
   }
 
   // Apply edit lock after section loads (slight delay for DOM)
-  // Skip absences — permissions handled internally by loadAbsenceNotices
-  if (section !== 'absences') {
-    setTimeout(() => APP.applyEditLock(section), 400);
-  }
+  // Apply edit lock after section loads
+  setTimeout(() => APP.applyEditLock(section), 400);
 };
 
 // Also patch loaders to apply locks after render
@@ -1426,7 +1424,6 @@ APP.navigate = function(section) {
       loadMembers: 'members', loadAttendance: 'attendance',
       loadEvents: 'events', loadFinances: 'finances'
     };
-    // Note: absences excluded — its permissions are handled internally
     setTimeout(() => APP.applyEditLock(sectionMap[fn]), 400);
   };
 });

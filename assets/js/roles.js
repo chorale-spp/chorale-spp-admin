@@ -13,7 +13,6 @@ APP.PERMISSIONS = {
   overview:      ['music_director','secretary','treasurer','archivist','maestro','discipline_dir','discipline_vic','voice_resp'],
   members:       ['music_director','secretary'],
   attendance:    ['music_director','discipline_dir','discipline_vic','voice_resp'],
-  absences:      ['music_director','discipline_dir','discipline_vic','secretary'],
   events:        ['music_director','secretary'],
   finances:      ['music_director','treasurer'],
   scores:        ['music_director','archivist'],
@@ -73,7 +72,6 @@ APP.getSectionOwner = function(section) {
   const owners = {
     members:       'Secretary / Admin',
     attendance:    'Discipline Director or Voice Responsable',
-    absences:      'Discipline Director, Vice or Music Director',
     events:        'Secretary or Music Director',
     finances:      'Treasurer',
     scores:        'Archivist or Music Director',
